@@ -1,0 +1,104 @@
+No	Kata/Pola Pemicu	Tier	Metode	Kode Teknik	Nama Teknik	Efek (fx)	Durasi (detik)	Conf	Aksi
+1	duck musik	1	kata	AUD-E01	Music Duck	duck	tayang terus (toggle)	0.90	AUTO (>=85%)
+2	kecilkan musik	1	kata	AUD-E01	Music Duck	duck	tayang terus (toggle)	0.90	AUTO (>=85%)
+3	music duck	1	kata	AUD-E01	Music Duck	duck	tayang terus (toggle)	0.90	AUTO (>=85%)
+4	musiknya pelan	1	kata	AUD-E01	Music Duck	duck	tayang terus (toggle)	0.90	AUTO (>=85%)
+5	beri sfx	1	kata	AUD-E03	SFX Sting	sfx	0	0.90	AUTO (>=85%)
+6	sfx sting	1	kata	AUD-E03	SFX Sting	sfx	0	0.90	AUTO (>=85%)
+7	sound effect	1	kata	AUD-E03	SFX Sting	sfx	0	0.90	AUTO (>=85%)
+8	flash putih	1	kata	CUT-A03	Hard Cut Flash	flash	.5	0.90	AUTO (>=85%)
+9	kilat putih	1	kata	CUT-A03	Hard Cut Flash	flash	.5	0.90	AUTO (>=85%)
+10	white flash	1	kata	CUT-A03	Hard Cut Flash	flash	.5	0.90	AUTO (>=85%)
+11	bekukan frame	1	kata	CUT-A06	Freeze Frame	freeze	2	0.90	AUTO (>=85%)
+12	freeze	1	kata	CUT-A06	Freeze Frame	freeze	2	0.90	AUTO (>=85%)
+13	freeze frame	1	kata	CUT-A06	Freeze Frame	freeze	2	0.90	AUTO (>=85%)
+14	maju dikit	1	kata	CUT-A08	Punch-In	punch	.8	0.92	AUTO (>=85%)
+15	perbesar	1	kata	CUT-A08	Punch-In	punch	.8	0.92	AUTO (>=85%)
+16	punch in	1	kata	CUT-A08	Punch-In	punch	.8	0.92	AUTO (>=85%)
+17	zoom in	1	kata	CUT-A08	Punch-In	punch	.8	0.92	AUTO (>=85%)
+18	zoom in dikit	1	kata	CUT-A08	Punch-In	punch	.8	0.92	AUTO (>=85%)
+19	fade out	1	kata	CUT-B02	Fade to Black	fade	1.5	0.90	AUTO (>=85%)
+20	fade to black	1	kata	CUT-B02	Fade to Black	fade	1.5	0.90	AUTO (>=85%)
+21	fading	1	kata	CUT-B02	Fade to Black	fade	1.5	0.90	AUTO (>=85%)
+22	golden hour	1	kata	FX-D01	LUT Hangat	lut	tayang terus (toggle)	0.90	AUTO (>=85%)
+23	nuansa hangat	1	kata	FX-D01	LUT Hangat	lut	tayang terus (toggle)	0.90	AUTO (>=85%)
+24	tone hangat	1	kata	FX-D01	LUT Hangat	lut	tayang terus (toggle)	0.90	AUTO (>=85%)
+25	warna hangat	1	kata	FX-D01	LUT Hangat	lut	tayang terus (toggle)	0.90	AUTO (>=85%)
+26	gerak lambat	1	kata	FX-D08	Slow Motion	slowmo	3	0.90	AUTO (>=85%)
+27	pelanin	1	kata	FX-D08	Slow Motion	slowmo	3	0.90	AUTO (>=85%)
+28	slow mo	1	kata	FX-D08	Slow Motion	slowmo	3	0.90	AUTO (>=85%)
+29	slow motion	1	kata	FX-D08	Slow Motion	slowmo	3	0.90	AUTO (>=85%)
+30	slowmo	1	kata	FX-D08	Slow Motion	slowmo	3	0.90	AUTO (>=85%)
+31	bar sinematik	1	kata	FX-D15	Letterbox	letterbox	tayang terus (toggle)	0.90	AUTO (>=85%)
+32	letterbox	1	kata	FX-D15	Letterbox	letterbox	tayang terus (toggle)	0.90	AUTO (>=85%)
+33	rasa sinematik	1	kata	FX-D15	Letterbox	letterbox	tayang terus (toggle)	0.90	AUTO (>=85%)
+34	kamu di sudut	1	kata	LAY-B01	PiP Corner	pip	12	0.90	AUTO (>=85%)
+35	picture in picture	1	kata	LAY-B01	PiP Corner	pip	12	0.90	AUTO (>=85%)
+36	pip sudut	1	kata	LAY-B01	PiP Corner	pip	12	0.90	AUTO (>=85%)
+37	talking head	1	kata	LAY-B01	PiP Corner	pip	12	0.90	AUTO (>=85%)
+38	wajah di sudut	1	kata	LAY-B01	PiP Corner	pip	12	0.90	AUTO (>=85%)
+39	background malam	1	kata	LAY-B04	Ganti Latar	bgswap	12	0.88	AUTO (>=85%)
+40	ganti background	1	kata	LAY-B04	Ganti Latar	bgswap	12	0.88	AUTO (>=85%)
+41	ganti latar	1	kata	LAY-B04	Ganti Latar	bgswap	12	0.88	AUTO (>=85%)
+42	latar malam	1	kata	LAY-B04	Ganti Latar	bgswap	12	0.88	AUTO (>=85%)
+43	fullscreen lagi	1	kata	LAY-B09	Layar Penuh	fullret	1.2	0.90	AUTO (>=85%)
+44	kembali layar penuh	1	kata	LAY-B09	Layar Penuh	fullret	1.2	0.90	AUTO (>=85%)
+45	mundurin	1	kata	LAY-B09	Layar Penuh	fullret	1.2	0.88	AUTO (>=85%)
+46	perkecil	1	kata	LAY-B09	Layar Penuh	fullret	1.2	0.88	AUTO (>=85%)
+47	zoom out	1	kata	LAY-B09	Layar Penuh	fullret	1.2	0.88	AUTO (>=85%)
+48	judul pembuka	1	kata	TXT-C01	Judul Pop	title	3	0.90	AUTO (>=85%)
+49	judul pop	1	kata	TXT-C01	Judul Pop	title	3	0.90	AUTO (>=85%)
+50	teks judul	1	kata	TXT-C01	Judul Pop	title	3	0.90	AUTO (>=85%)
+51	title card	1	kata	TXT-C01	Judul Pop	title	3	0.90	AUTO (>=85%)
+52	caption on	1	kata	TXT-C03	Takarir	caption	tayang terus (toggle)	0.90	AUTO (>=85%)
+53	kata per kata	1	kata	TXT-C03	Takarir	caption	tayang terus (toggle)	0.90	AUTO (>=85%)
+54	subtitle	1	kata	TXT-C03	Takarir	caption	tayang terus (toggle)	0.90	AUTO (>=85%)
+55	takarir	1	kata	TXT-C03	Takarir	caption	tayang terus (toggle)	0.90	AUTO (>=85%)
+56	intro nama	1	kata	TXT-C04	Lower Third	lower	6	0.90	AUTO (>=85%)
+57	lower third	1	kata	TXT-C04	Lower Third	lower	6	0.90	AUTO (>=85%)
+58	nama di bawah	1	kata	TXT-C04	Lower Third	lower	6	0.90	AUTO (>=85%)
+59	callout	1	kata	TXT-C05	Penunjuk	callout	4	0.90	AUTO (>=85%)
+60	kasih panah	1	kata	TXT-C05	Penunjuk	callout	4	0.90	AUTO (>=85%)
+61	lingkari	1	kata	TXT-C05	Penunjuk	callout	4	0.90	AUTO (>=85%)
+62	panah ke sini	1	kata	TXT-C05	Penunjuk	callout	4	0.90	AUTO (>=85%)
+63	tunjuk objek	1	kata	TXT-C05	Penunjuk	callout	4	0.90	AUTO (>=85%)
+64	angka besar	1	kata	TXT-C07	Pencacah Angka	counter	4	0.90	AUTO (>=85%)
+65	count up	1	kata	TXT-C07	Pencacah Angka	counter	4	0.90	AUTO (>=85%)
+66	counter angka	1	kata	TXT-C07	Pencacah Angka	counter	4	0.90	AUTO (>=85%)
+67	highlight angka	1	kata	TXT-C07	Pencacah Angka	counter	4	0.90	AUTO (>=85%)
+68	end card	1	kata	TXT-C09	End Card	endcard	3	0.90	AUTO (>=85%)
+69	outro card	1	kata	TXT-C09	End Card	endcard	3	0.90	AUTO (>=85%)
+70	however	2	kata	CUT-A03	Hard Cut Flash	flash	.5	0.62	KONFIRMASI 1 KLIK
+71	padahal	2	kata	CUT-A03	Hard Cut Flash	flash	.5	0.62	KONFIRMASI 1 KLIK
+72	tapi	2	kata	CUT-A03	Hard Cut Flash	flash	.5	0.62	KONFIRMASI 1 KLIK
+73	big mistake	2	kata	CUT-A08	Punch-In	punch	.8	0.55	KONFIRMASI 1 KLIK
+74	fatal	2	kata	CUT-A08	Punch-In	punch	.8	0.55	KONFIRMASI 1 KLIK
+75	serius ini	2	kata	CUT-A08	Punch-In	punch	.8	0.55	KONFIRMASI 1 KLIK
+76	suddenly	2	kata	CUT-A08	Punch-In	punch	.8	0.80	KONFIRMASI 1 KLIK
+77	tiba tiba	2	kata	CUT-A08	Punch-In	punch	.8	0.80	KONFIRMASI 1 KLIK
+78	tiba-tiba	2	kata	CUT-A08	Punch-In	punch	.8	0.80	KONFIRMASI 1 KLIK
+79	bottom line	2	kata	LAY-B09	Layar Penuh (payoff)	fullret	1.2	0.74	KONFIRMASI 1 KLIK
+80	intinya	2	kata	LAY-B09	Layar Penuh (payoff)	fullret	1.2	0.74	KONFIRMASI 1 KLIK
+81	jadi	2	kata	LAY-B09	Layar Penuh (payoff)	fullret	1.2	0.74	KONFIRMASI 1 KLIK
+82	karena itu	2	kata	LAY-B09	Layar Penuh (payoff)	fullret	1.2	0.74	KONFIRMASI 1 KLIK
+83	biar jelas	2	kata	TXT-C05	Penunjuk	callout	4	0.60	KONFIRMASI 1 KLIK
+84	cek ini	2	kata	TXT-C05	Penunjuk	callout	4	0.60	KONFIRMASI 1 KLIK
+85	lihat ini	2	kata	TXT-C05	Penunjuk	callout	4	0.60	KONFIRMASI 1 KLIK
+86	chart	2	kata	TXT-C06	Grafik Batang	chart	8	0.85	AUTO (>=85%)
+87	data	2	kata	TXT-C06	Grafik Batang	chart	8	0.85	AUTO (>=85%)
+88	diagram	2	kata	TXT-C06	Grafik Batang	chart	8	0.85	AUTO (>=85%)
+89	grafik	2	kata	TXT-C06	Grafik Batang	chart	8	0.85	AUTO (>=85%)
+90	grafik batang	2	kata	TXT-C06	Grafik Batang	chart	8	0.85	AUTO (>=85%)
+91	riset	2	kata	TXT-C06	Grafik Batang	chart	8	0.85	AUTO (>=85%)
+92	statistik	2	kata	TXT-C06	Grafik Batang	chart	8	0.85	AUTO (>=85%)
+93	survei	2	kata	TXT-C06	Grafik Batang	chart	8	0.85	AUTO (>=85%)
+94	N kali lipat  (dua/tiga/... kali lipat)	2	pola angka	TXT-C07	Pencacah Angka	counter	4	0.85	AUTO (>=85%)
+95	N persen  (contoh: 53 persen)	2	pola angka	TXT-C07	Pencacah Angka	counter	4	0.85	AUTO (>=85%)
+96	N%  (contoh: 53%)	2	pola angka	TXT-C07	Pencacah Angka	counter	4	0.85	AUTO (>=85%)
+97	follow	2	kata	TXT-C09	End Card (CTA)	endcard	3	0.88	AUTO (>=85%)
+98	ikuti	2	kata	TXT-C09	End Card (CTA)	endcard	3	0.88	AUTO (>=85%)
+99	penutup	2	kata	TXT-C09	End Card	endcard	3	0.58	KONFIRMASI 1 KLIK
+100	subscribe	2	kata	TXT-C09	End Card (CTA)	endcard	3	0.88	AUTO (>=85%)
+101	terakhir	2	kata	TXT-C09	End Card	endcard	3	0.58	KONFIRMASI 1 KLIK
+102	(kalimat PEMBUKA naskah — kalau belum ada judul)	3	posisi kalimat	TXT-C01	Judul Pop (hook)	title	3	0.70	KONFIRMASI 1 KLIK
+103	(kalimat PENUTUP naskah — kalau belum ada end card)	3	posisi kalimat	TXT-C09	End Card (CTA)	endcard	3	0.70	KONFIRMASI 1 KLIK

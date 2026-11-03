@@ -1,0 +1,829 @@
+<script>
+/* ═══════════ UTILITAS DASAR ═══════════ */
+const $ = id => document.getElementById(id);
+const DUR = 32;
+let screen = "mode", mode = "m1";
+function show(name){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $("scr-"+name).classList.add("active");
+  screen = name;
+  const map = { home:[1,0,0], amati:[1,0,0], tiru:[0,1,0], studio:[0,1,1], export:[0,1,1],
+                mode:[0,0,0], vo:[1,0,0], m2review:[0,1,0] };
+  const st = map[name]||[0,0,0];
+  $("st1").classList.toggle("on", !!st[0]);
+  $("st2").classList.toggle("on", !!st[1]);
+  $("st3").classList.toggle("on", !!st[2]);
+  if(name==="studio"){ stopLoop=false; lastTs=0; requestAnimationFrame(loop); } else { stopLoop=true; playing=false; $("playbtn").textContent="▶"; }
+}
+function goMode(m){
+  mode=m; setSteps(m==="m1"?1:2);
+  if(m==="m1") show("home"); else { initVO(); show("vo"); }
+}
+function setSteps(m){
+  const S={
+    1:[["Amati","AI memindai video referensi: transkrip, beat, struktur naratif, lalu memetakan tekniknya ke katalog (kode CUT/LAY/TXT/FX/AUD/AI)."],
+       ["Tiru","Anchor dari DNA referensi dipetakan ke video-mu lewat padanan fungsional — tinjau per kartu."],
+       ["Modifikasi","Putar video, ketuk untuk pause, menu radial muncul di titik jari."]],
+    2:[["Naskah / VO","Rekam voice-over — ASR on-device memberi timestamp per kata. Setiap kata berpotensi jadi anchor."],
+       ["Pemicu","Kamus ID+EN mencocokkan kata → teknik katalog. Hybrid: yakin ≥85% terpasang otomatis, sisanya konfirmasi."],
+       ["Modifikasi","Studio yang sama: anchor aktif otomatis saat diputar, radial menu untuk menambah manual."]]
+  };
+  S[m].forEach((s,i)=>{
+    const el=$("st"+(i+1));
+    el.querySelector("b").textContent=s[0];
+    el.querySelector("small").textContent=s[1];
+  });
+}
+let toastTimer;
+function toast(html){
+  const t=$("toast"); t.innerHTML=html; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+
+/* ═══════════ KAMUS PEMICU (ID+EN, 3 LAPIS) ═══════════
+   tier 1 = perintah langsung (presisi tinggi)
+   tier 2 = kata naratif / pola angka
+   tier 3 = struktur naskah (hook / CTA dari posisi kalimat)   */
+const E_NUM  ={code:"TXT-C07",name:"Pencacah Angka",fx:"counter",dur:4,tier:2};
+const E_HOOK ={code:"TXT-C01",name:"Judul Pop (hook)",fx:"title",dur:3,tier:3};
+const E_CTA  ={code:"TXT-C09",name:"End Card (CTA)",fx:"endcard",dur:3,tier:3};
+const KDICT=[
+ {w:["zoom in","zoom in dikit","perbesar","maju dikit","punch in"],tier:1,code:"CUT-A08",name:"Punch-In",fx:"punch",dur:.8,conf:.92},
+ {w:["zoom out","perkecil","mundurin"],tier:1,code:"LAY-B09",name:"Layar Penuh",fx:"fullret",dur:1.2,conf:.88},
+ {w:["slow motion","slow mo","slowmo","pelanin","gerak lambat"],tier:1,code:"FX-D08",name:"Slow Motion",fx:"slowmo",dur:3,conf:.9},
+ {w:["freeze frame","bekukan frame","freeze"],tier:1,code:"CUT-A06",name:"Freeze Frame",fx:"freeze",dur:2,conf:.9},
+ {w:["fade to black","fade out","fading"],tier:1,code:"CUT-B02",name:"Fade to Black",fx:"fade",dur:1.5,conf:.9},
+ {w:["flash putih","white flash","kilat putih"],tier:1,code:"CUT-A03",name:"Hard Cut Flash",fx:"flash",dur:.5,conf:.9},
+ {w:["letterbox","bar sinematik","rasa sinematik"],tier:1,code:"FX-D15",name:"Letterbox",fx:"letterbox",dur:999,conf:.9},
+ {w:["tone hangat","nuansa hangat","warna hangat","golden hour"],tier:1,code:"FX-D01",name:"LUT Hangat",fx:"lut",dur:999,conf:.9},
+ {w:["ganti latar","latar malam","background malam","ganti background"],tier:1,code:"LAY-B04",name:"Ganti Latar",fx:"bgswap",dur:12,conf:.88},
+ {w:["judul pop","judul pembuka","title card","teks judul"],tier:1,code:"TXT-C01",name:"Judul Pop",fx:"title",dur:3,conf:.9},
+ {w:["lower third","nama di bawah","intro nama"],tier:1,code:"TXT-C04",name:"Lower Third",fx:"lower",dur:6,conf:.9},
+ {w:["takarir","caption on","subtitle","kata per kata"],tier:1,code:"TXT-C03",name:"Takarir",fx:"caption",dur:999,conf:.9},
+ {w:["counter angka","angka besar","highlight angka","count up"],tier:1,code:"TXT-C07",name:"Pencacah Angka",fx:"counter",dur:4,conf:.9},
+ {w:["lingkari","kasih panah","callout","tunjuk objek","panah ke sini"],tier:1,code:"TXT-C05",name:"Penunjuk",fx:"callout",dur:4,conf:.9},
+ {w:["pip sudut","picture in picture","wajah di sudut","talking head","kamu di sudut"],tier:1,code:"LAY-B01",name:"PiP Corner",fx:"pip",dur:12,conf:.9},
+ {w:["kembali layar penuh","fullscreen lagi"],tier:1,code:"LAY-B09",name:"Layar Penuh",fx:"fullret",dur:1.2,conf:.9},
+ {w:["end card","outro card"],tier:1,code:"TXT-C09",name:"End Card",fx:"endcard",dur:3,conf:.9},
+ {w:["kecilkan musik","duck musik","music duck","musiknya pelan"],tier:1,code:"AUD-E01",name:"Music Duck",fx:"duck",dur:999,conf:.9},
+ {w:["sfx sting","sound effect","beri sfx"],tier:1,code:"AUD-E03",name:"SFX Sting",fx:"sfx",dur:0,conf:.9},
+ {w:["tiba-tiba","tiba tiba","suddenly"],tier:2,code:"CUT-A08",name:"Punch-In",fx:"punch",dur:.8,conf:.8},
+ {w:["tapi","padahal","however"],tier:2,code:"CUT-A03",name:"Hard Cut Flash",fx:"flash",dur:.5,conf:.62},
+ {w:["jadi","karena itu","intinya","bottom line"],tier:2,code:"LAY-B09",name:"Layar Penuh (payoff)",fx:"fullret",dur:1.2,conf:.74},
+ {w:["grafik","chart","diagram","grafik batang","statistik","data","survei","riset"],tier:2,code:"TXT-C06",name:"Grafik Batang",fx:"chart",dur:8,conf:.85},
+ {w:["lihat ini","cek ini","biar jelas"],tier:2,code:"TXT-C05",name:"Penunjuk",fx:"callout",dur:4,conf:.6},
+ {w:["follow","subscribe","ikuti"],tier:2,code:"TXT-C09",name:"End Card (CTA)",fx:"endcard",dur:3,conf:.88},
+ {w:["big mistake","fatal","serius ini"],tier:2,code:"CUT-A08",name:"Punch-In",fx:"punch",dur:.8,conf:.55},
+ {w:["terakhir","penutup"],tier:2,code:"TXT-C09",name:"End Card",fx:"endcard",dur:3,conf:.58},
+];
+
+/* ═══════════ MESIN PEMICU ═══════════ */
+function normTok(w){ return w.toLowerCase().replace(/[^a-z0-9%\-]/g,""); }
+function stemTok(w){ return w.replace(/(nya|ku|mu|lah|kah|pun)$/,""); }
+function splitDisplay(s){ return s.trim().split(/\s+/).filter(Boolean); }
+function matchTriggers(words){
+  const toks = words.map(x=>stemTok(normTok(x.txt)));
+  const hits=[];
+  KDICT.forEach(e=>{
+    e.w.forEach(v=>{
+      const vt=v.split(/\s+/).map(x=>stemTok(normTok(x)));
+      for(let i=0;i<=toks.length-vt.length;i++){
+        let ok=true;
+        for(let j=0;j<vt.length;j++){ if(toks[i+j]!==vt[j]){ ok=false; break; } }
+        if(ok) hits.push({t:words[i].t, word:words.slice(i,i+vt.length).map(x=>x.txt).join(" "), entry:e, conf:e.conf, tier:e.tier});
+      }
+    });
+  });
+  /* pola angka: "53%", "53 persen", "dua kali lipat" */
+  for(let i=0;i<words.length;i++){
+    const n=normTok(words[i].txt);
+    if(/^\d+([.,]\d+)?%$/.test(n)) hits.push({t:words[i].t, word:words[i].txt, entry:E_NUM, conf:.85, tier:2});
+    else if(/^\d+([.,]\d+)?$/.test(n) && words[i+1] && normTok(words[i+1].txt)==="persen")
+      hits.push({t:words[i].t, word:words[i].txt+" "+words[i+1].txt, entry:E_NUM, conf:.85, tier:2});
+    const prev=words[i-1]?normTok(words[i-1].txt):"";
+    if(n==="kali" && /^(dua|tiga|empat|lima|enam|\d+)$/.test(prev) && words[i+1] && normTok(words[i+1].txt).startsWith("lipat"))
+      hits.push({t:words[i].t, word:words[i-1].txt+" kali lipat", entry:E_NUM, conf:.85, tier:2});
+  }
+  /* lapis 3 — struktur: kalimat pembuka → hook, penutup → CTA */
+  if(!hits.some(h=>h.entry.fx==="title"))
+    hits.push({t:.2, word:"kalimat pembuka", entry:E_HOOK, conf:.7, tier:3});
+  if(!hits.some(h=>h.entry.fx==="endcard")){
+    const last=words[words.length-1];
+    if(last) hits.push({t:Math.max(.2,last.t-1), word:"kalimat penutup", entry:E_CTA, conf:.7, tier:3});
+  }
+  /* dedup: fx sama dalam <1.2 dtk → pertahankan yang paling yakin */
+  hits.sort((a,b)=>a.t-b.t);
+  const out=[];
+  hits.forEach(h=>{
+    const i=out.findIndex(o=>o.entry.fx===h.entry.fx && Math.abs(o.t-h.t)<1.2);
+    if(i<0) out.push(h);
+    else if(h.conf>out[i].conf) out[i]=h;
+  });
+  return out;
+}
+
+/* ═══════════ DATA SIMULASI (METODE 1) ═══════════ */
+const CHIPS = [
+  {code:"LAY-B01", name:"PiP Corner",        acc:true},
+  {code:"TXT-C06", name:"Chart Animation",   acc:true},
+  {code:"CUT-A04", name:"J-Cut / L-Cut",     acc:true},
+  {code:"TXT-C03", name:"Auto Caption",      acc:true},
+  {code:"TXT-C04", name:"Lower Third",       acc:true},
+  {code:"AUD-E01", name:"Music Duck",        acc:true},
+  {code:"FX-D01",  name:"LUT Hangat",        acc:false},
+  {code:"TXT-C09", name:"End Card",          acc:false},
+];
+const UNKNOWN = {code:"???-??", name:"transisi cair kustom"};
+
+const NARRATION = [
+  [0.0, 3.4, "Oke, di video ini kita bahas satu kebiasaan…"],
+  [3.4, 8.5, "…yang bikin banyak orang gagal nabung tiap bulan."],
+  [8.5,12.4,"Menurut STATISTIK, hampir separuh dari kita…"],
+  [12.4,17.4,"…belum punya dana darurat. Angkanya 53 persen."],
+  [17.4,23.4,"Penyebabnya sederhana: menabung dicicil di akhir, bukan di awal."],
+  [23.4,28.2,"Karena itu: sisihkan 10 persen begitu gajian masuk."],
+  [28.2,32.0,"Follow untuk tips keuangan berikutnya!"],
+];
+const TRIGGER = {word:"statistik", from:8.5, to:9.8};
+
+/* Anchor hasil pemetaan (dibentuk ulang dari chip yang diterima / pemicu m2) */
+let ANCHORS = [];
+
+/* ═══════════ TAKARIR (baris kata per kata) ═══════════ */
+let CAPTIONS = [];
+function buildCaptionsFromNarration(){
+  CAPTIONS=[];
+  NARRATION.forEach(n=>{
+    const [t0,t1,txt]=n;
+    const raw=txt.split(/\s+/).filter(Boolean);
+    const ws=raw.map((w,i)=>({txt:w, hit:/statistik/i.test(w), t:t0+(t1-t0)*i/raw.length}));
+    CAPTIONS.push({t0:t0, t1:t1-0.05, words:ws});
+  });
+}
+function buildCaptionsFromWords(words){
+  CAPTIONS=[];
+  if(!words.length) return;
+  let line={t0:words[0].t, words:[]};
+  words.forEach((w,i)=>{
+    const hit=m2Hits.some(h=>Math.abs(h.t-w.t)<0.05);
+    line.words.push({txt:w.txt, hit:hit});
+    const endSent=/[.!?]["']?$/.test(w.txt);
+    if(line.words.length>=6 || endSent || i===words.length-1){
+      line.t1=w.t+0.4; CAPTIONS.push(line);
+      if(i<words.length-1) line={t0:words[i+1].t, words:[]};
+    }
+  });
+}
+
+/* ═══════════ METODE 2 — NASKAH / VO ═══════════ */
+const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=false, recStart=0, recClock=0, recTimer=null, chunks=[], recog=null, m2Hits=[];
+const DEMO_SCRIPT = "Oke guys, quick tips! Tiga kebiasaan yang bikin kamu gagal nabung. Pertama, tunggu sisa gaji — big mistake. Kedua, nggak punya dana darurat. Padahal, 53 persen orang kayak gitu. Cek grafiknya biar jelas, dan kecilkan musiknya di sini. Ketiga, menabung di akhir bulan. Tiba-tiba aja uangnya habis. Zoom in ke angkanya biar dramatis. Jadi, intinya: sisihkan dulu, baru belanja. Terakhir, follow untuk tips keuangan berikutnya!";
+function initVO(){
+  $("sr-status").innerHTML = SR
+    ? "✓ Mesin ASR on-device tersedia (Web Speech API) — rekam langsung!"
+    : "⚠ ASR tidak tersedia di browser ini — pakai <b>naskah contoh</b> atau tempel teks.";
+}
+function toggleRec(){ rec ? stopRec() : startRec(); }
+function startRec(){
+  if(!SR){ toast("ASR tidak tersedia — pakai <b>naskah contoh</b> atau tempel teks"); return; }
+  recog=new SR(); recog.continuous=true; recog.interimResults=true; recog.lang="id-ID";
+  chunks=[]; recClock=0; recStart=performance.now();
+  recog.onresult=e=>{
+    let interim="";
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const r=e.results[i];
+      if(r.isFinal){ chunks.push({text:r[0].transcript.trim(), t:recClock}); renderLive(); }
+      else interim+=r[0].transcript;
+    }
+    $("interim").textContent=interim?"… "+interim:"";
+  };
+  recog.onerror=ev=>{ if(ev.error==="not-allowed"||ev.error==="service-not-allowed"){ toast("Izin mic ditolak — pakai teks atau naskah contoh"); stopRec(); } };
+  recog.onend=()=>{ if(rec){ try{recog.start();}catch(_){}}};
+  try{ recog.start(); }catch(_){ return; }
+  rec=true;
+  $("micbtn").classList.add("rec");
+  $("miclbl").textContent="Ketuk lagi untuk berhenti";
+  $("rectime").style.display="block";
+  recTimer=setInterval(()=>{ recClock=(performance.now()-recStart)/1000; $("rectime").textContent="● "+recClock.toFixed(1)+" dtk"; },100);
+  toast("Rekam VO berjalan — baca naskahmu dengan tempo natural");
+}
+function stopRec(){
+  rec=false; clearInterval(recTimer);
+  try{ recog.onend=null; recog.stop(); }catch(_){}
+  $("micbtn").classList.remove("rec"); $("interim").textContent="";
+  $("miclbl").textContent="Rekam ulang VO";
+  if(!chunks.length){ toast("Tidak ada ucapan terekam — pakai teks atau naskah contoh"); return; }
+  /* estimasi timestamp per kata: sebar merata di dalam tiap chunk */
+  const words=[]; let prev=0.3;
+  chunks.forEach((c,i)=>{
+    const next = i<chunks.length-1 ? Math.max(c.t+0.4, chunks[i+1].t) : c.t+Math.max(0.8, c.text.split(" ").length*0.32);
+    const ws=splitDisplay(c.text);
+    ws.forEach((w,j)=>words.push({txt:w.toLowerCase(), t:prev+(next-prev)*(j/ws.length)}));
+    prev=next;
+  });
+  $("livetext").textContent=words.map(w=>w.txt).join(" ");
+  analyzeWords(words, "VO terekam ("+words.length+" kata)");
+}
+function renderLive(){ $("livetext").textContent=chunks.map(c=>c.text).join(" "); }
+function analyzeTyped(){
+  const txt=$("ta").value.trim();
+  if(!txt){ toast("Naskah kosong — ketik dulu atau pakai contoh"); return; }
+  const parts=txt.replace(/([.!?])\s+/g,"$1\u0001").split("\u0001");
+  let t=0.2; const words=[];
+  parts.forEach(p=>{
+    const ws=splitDisplay(p);
+    ws.forEach(w=>{ words.push({txt:w.toLowerCase(), t:t}); t+=0.36; });
+    t+=0.35;
+  });
+  analyzeWords(words, "Naskah teks (simulasi ±160 kata/menit)");
+}
+function useDemo(){ $("ta").value=DEMO_SCRIPT; analyzeTyped(); }
+function analyzeWords(words, srcLabel){
+  if(!words.length){ toast("Tidak ada kata untuk dianalisis"); return; }
+  m2Hits=matchTriggers(words);
+  buildCaptionsFromWords(words);
+  renderReview(srcLabel, words.length);
+  show("m2review");
+}
+function renderReview(srcLabel, nWords){
+  const auto=m2Hits.filter(h=>h.conf>=0.85);
+  const man =m2Hits.filter(h=>h.conf<0.85);
+  let idx=0;
+  $("m2-summary").innerHTML=srcLabel+" · <b style='color:var(--tx)'>"+nWords+"</b> kata · <b style='color:var(--cy)'>"+m2Hits.length+"</b> pemicu dikenali dari kamus";
+  $("m2-auto").innerHTML = auto.length
+    ? auto.map(h=>"<div class='it'><code>"+h.entry.code+"</code> "+h.entry.name+"<span class='tm'>dtk "+h.t.toFixed(1)+"<br>“"+h.word+"”</span></div>").join("")
+    : "<div class='empty'>Tidak ada pemicu ber-keyakinan tinggi.</div>";
+  const box=$("m2cards"); box.innerHTML="";
+  man.forEach(h=>{
+    const c=document.createElement("div"); c.className="card acard";
+    c.innerHTML =
+      '<div class="head"><span class="tcode">'+h.entry.code+'</span><span class="tname">'+h.entry.name+'</span>'+
+      '<span class="tm">dtk '+h.t.toFixed(1)+'</span></div>'+
+      '<div class="trig">🎯 kata <b>“'+h.word+'”</b> · lapis '+(h.tier===3?"struktur":"naratif")+' · yakin '+Math.round(h.conf*100)+'%</div>'+
+      '<div class="acts"><button class="btn" style="flex:1.2">Terima</button>'+
+      '<button class="btn ghost" style="flex:1">Geser ±1 dtk</button>'+
+      '<button class="btn ghost" style="flex:1">Tolak</button></div>';
+    box.appendChild(c);
+    const [b1,b2,b3]=c.querySelectorAll("button");
+    b1.onclick=()=>{ h.acc=true; c.style.display="none"; idx++; badge(); toast(h.entry.code+" diterima — aktif di dtk "+h.t.toFixed(1)); };
+    b2.onclick=()=>{ h.t=Math.max(0,Math.min(DUR-1,h.t+(Math.random()<0.5?-1:1))); c.querySelector(".tm").textContent="dtk "+h.t.toFixed(1); toast("Anchor digeser"); };
+    b3.onclick=()=>{ h.acc=false; c.style.display="none"; idx++; badge(); };
+  });
+  $("m2-mansec").style.display = man.length ? "block" : "none";
+  function badge(){
+    $("badge-m2").textContent=idx+"/"+man.length+" proposal";
+    $("btn-studio2").disabled = idx<man.length;
+  }
+  badge();
+}
+function acceptAll(){
+  document.querySelectorAll("#m2cards .card").forEach(c=>{
+    if(c.style.display!=="none") c.querySelector(".acts .btn").click();
+  });
+}
+function startStudioM2(){
+  ANCHORS = m2Hits
+    .filter(h=>(h.conf>=0.85 && h.acc!==false) || h.acc===true)
+    .map(h=>({code:h.entry.code, name:h.entry.name, fx:h.entry.fx, t:h.t, dur:h.entry.dur,
+              trig:"kata “"+h.word+"”", status:"acc"}))
+    .sort((a,b)=>a.t-b.t);
+  startStudio();
+}
+
+/* ═══════════ TAHAP 1 — AMATI (METODE 1) ═══════════ */
+const SCAN_STEPS = [
+  "speech-to-text on-device… <b>7 kalimat terdeteksi</b>",
+  "scene detect + beat scan… <b>26 potongan/menit · BPM 96</b>",
+  "pemetaan struktur… <b>Hook → Konteks → Bukti → Payoff → CTA</b>",
+  "pencocokan katalog… <b>8 teknik dikenali, 1 unknown</b>",
+];
+function startAmati(){
+  show("amati");
+  $("amati-result").style.display="none";
+  $("scanlog").innerHTML=""; $("scanline").style.display="block";
+  $("badge-amati").textContent="memindai…";
+  ["d1","d2","d3","d4"].forEach(d=>$(d).classList.remove("on"));
+  let i=0;
+  const tick=()=>{
+    if(i<SCAN_STEPS.length){
+      $("scanlog").innerHTML += "▸ "+SCAN_STEPS[i]+"<br>";
+      $("d"+(i+1)).classList.add("on");
+      $("badge-amati").textContent = "langkah "+(i+1)+"/4";
+      i++; setTimeout(tick, 900);
+    } else {
+      $("scanline").style.display="none";
+      $("badge-amati").textContent="selesai ✓";
+      renderChips();
+      $("amati-result").style.display="block";
+      toast("Profil gaya terbentuk — <b>Dokumenter Naratif</b>");
+    }
+  };
+  setTimeout(tick, 500);
+}
+function renderChips(){
+  const box=$("chips"); box.innerHTML="";
+  CHIPS.forEach(c=>{
+    const el=document.createElement("span");
+    el.className="chip"+(c.acc?" acc":"");
+    el.innerHTML="<code>"+c.code+"</code> "+c.name;
+    el.onclick=()=>{ c.acc=!c.acc; el.classList.toggle("acc",c.acc); };
+    box.appendChild(el);
+  });
+  const u=document.createElement("span");
+  u.className="chip unknown";
+  u.innerHTML="<code>unknown</code> "+UNKNOWN.name;
+  u.onclick=()=>toast("Usulan entri baru dikirim ke antrean katalog ✓");
+  box.appendChild(u);
+}
+function toggleDNA(){
+  const d=$("dna");
+  if(d.style.display==="none"){
+    d.textContent =
+'{\n  "schema_version": "1.0",\n  "reference": { "duration_sec": 45, "aspect_ratio": "9:16" },\n  "style": { "family": "documentary-narrative",\n    "tempo": { "cuts_per_minute": 26 } },\n  "beats": [ "hook", "konteks", "bukti", "payoff", "CTA" ],\n  "anchors": [\n    { "t_sec": 12.4, "technique": "LAY-B01",\n      "trigger": { "type": "keyword", "value": "statistik" },\n      "confidence": 0.88 },\n    { "t_sec": 13.0, "technique": "TXT-C06",\n      "asset": { "type": "template", "ref": "chart-bar-v1" } }\n  ],\n  "unknown_techniques": [\n    { "t_sec": 37.5, "observed": "transisi cair kustom" }\n  ]\n}';
+    d.style.display="block"; $("btn-dna").textContent="Sembunyikan DNA";
+  } else { d.style.display="none"; $("btn-dna").textContent="Lihat DNA Referensi (JSON)"; }
+}
+
+/* ═══════════ TAHAP 2 — TIRU (METODE 1) ═══════════ */
+function buildAnchors(){
+  ANCHORS = [
+    {code:"TXT-C01", name:"Judul Pop",     fx:"title",   t:0.8,  dur:3,   trig:"Pembukaan — padanan <b>hook</b>"},
+    {code:"LAY-B01", name:"PiP Corner",    fx:"pip",     t:9.0,  dur:12,  trig:"Kamu bilang “statistik” (dtk 9)", chip:"LAY-B01"},
+    {code:"TXT-C06", name:"Grafik Batang", fx:"chart",   t:9.6,  dur:8,   trig:"Momen bukti — data 53% di dtk 14", chip:"TXT-C06"},
+    {code:"LAY-B09", name:"Layar Penuh",   fx:"fullret", t:23.6, dur:1.2, trig:"Kalimat “karena itu” — <b>payoff</b>"},
+    {code:"TXT-C09", name:"End Card",      fx:"endcard", t:29.0, dur:3,   trig:"Kalimat ajakan — <b>CTA</b>", chip:"TXT-C09"},
+  ].filter(a=>!a.chip || CHIPS.find(c=>c.code===a.chip)?.acc);
+}
+let reviewed=0;
+function startTiru(){
+  buildAnchors();
+  show("tiru");
+  reviewed=0; updateBadge();
+  const box=$("anchorcards"); box.innerHTML="";
+  $("btn-studio").disabled=true;
+  ANCHORS.forEach((a,idx)=>{
+    const c=document.createElement("div");
+    c.className="card acard";
+    c.innerHTML =
+      '<div class="head"><span class="tcode">'+a.code+'</span><span class="tname">'+a.name+'</span>'+
+      '<span class="tm">dtk '+a.t.toFixed(1)+'</span></div>'+
+      '<div class="trig">🎯 '+a.trig+' · toleransi ±'+ (a.fx==="pip"?0.8:0.5) +' dtk</div>'+
+      '<div class="prevbox"><canvas id="pv'+idx+'" width="680" height="480"></canvas></div>'+
+      '<div class="acts"><button class="btn" style="flex:1.2">Terima</button>'+
+      '<button class="btn ghost" style="flex:1">Geser ±1 dtk</button>'+
+      '<button class="btn ghost" style="flex:1">Tolak</button></div>';
+    box.appendChild(c);
+    const [b1,b2,b3]=c.querySelectorAll("button");
+    b1.onclick=()=>{ a.status="acc"; c.classList.add("done-acc"); c.style.display="none"; reviewed++; updateBadge(); toast(a.code+" diterima — akan aktif otomatis di studio"); };
+    b2.onclick=()=>{ a.t=Math.max(0,Math.min(DUR-1,a.t+ (Math.random()<0.5?-1:1) )); c.querySelector(".tm").textContent="dtk "+a.t.toFixed(1); toast("Anchor digeser — pratinjau diperbarui"); drawThumb(a,idx); };
+    b3.onclick=()=>{ a.status="rej"; c.classList.add("done-rej"); c.style.display="none"; reviewed++; updateBadge(); };
+    drawThumb(a,idx);
+  });
+  if(ANCHORS.length===0){ $("btn-studio").disabled=false; }
+}
+function updateBadge(){
+  $("badge-tiru").textContent = reviewed+"/"+ANCHORS.length+" anchor";
+  if(reviewed>=ANCHORS.length) $("btn-studio").disabled=false;
+}
+function drawThumb(a,idx){
+  const cv=$("pv"+idx); if(!cv) return;
+  const cx=cv.getContext("2d");
+  cx.save(); cx.scale(cv.width/760, cv.height/536); cx.translate(0,-150);
+  renderScene(cx, a.t+0.8, [{fx:a.fx, t0:a.t, dur:a.dur, code:a.code, name:a.name}], true);
+  cx.restore();
+  cx.strokeStyle="rgba(55,220,242,.9)"; cx.lineWidth=3;
+  cx.beginPath(); cx.moveTo(0,cv.height-28); cx.lineTo(38,cv.height-28); cx.stroke();
+}
+
+/* ═══════════ MESIN KANVAS ═══════════ */
+const cv=$("vid"), ctx=cv.getContext("2d");
+let tCur=0, playing=false, stopLoop=false, lastTs=0;
+let active=[], pipTarget=false, pipFac=0, punchT=-9, bgAlt=false, capsOn=false;
+
+function applyFx(a, silent){
+  const t0=(a.t!==undefined?a.t:tCur);
+  if(active.some(x=>x.fx===a.fx && Math.abs(x.t0-t0)<1.2)){
+    if(!silent) toast("Efek sama sudah aktif di momen ini");
+    return false;
+  }
+  if(a.fx==="pip") pipTarget=true;
+  if(a.fx==="fullret"){ pipTarget=false; }
+  if(a.fx==="punch") punchT=tCur;
+  const entry={code:a.code, name:a.name, fx:a.fx, t0:t0, dur:a.dur};
+  active.push(entry);
+  addMarker(entry.t0);
+  addAppliedRow(entry);
+  if(!silent) toast("<code>"+entry.code+"</code> "+entry.name+" terpasang @ "+fmt(tCur));
+  return true;
+}
+function addMarker(t){
+  const m=document.createElement("div"); m.className="marker"; m.style.left=(t/DUR*100)+"%";
+  m.title="lompat ke anchor";
+  m.onclick=e=>{ e.stopPropagation(); seek(t); };
+  $("track").appendChild(m);
+}
+function addAppliedRow(a){
+  const box=$("applied");
+  const e=box.querySelector(".empty"); if(e) e.remove();
+  const it=document.createElement("div"); it.className="it";
+  it.innerHTML="<code>"+a.code+"</code> "+a.name+" <span class='tm'>"+fmt(a.t0)+"</span><button class='undo'>hapus</button>";
+  it.querySelector(".undo").onclick=()=>{ removeFx(it,a); };
+  box.appendChild(it);
+}
+function removeFx(row,a){
+  const i=active.indexOf(a); if(i>-1) active.splice(i,1);
+  row.remove();
+  const live=x=>tCur>=x.t0 && tCur<x.t0+x.dur;
+  if(a.fx==="pip"){ pipTarget = active.some(x=>x.fx==="pip" && live(x)); }
+  if(a.fx==="bgswap"){ bgAlt = active.some(x=>x.fx==="bgswap" && live(x)); }
+  if(a.fx==="caption"){ capsOn = active.some(x=>x.fx==="caption" && live(x)) || mode==="m2"; }
+  refreshMarkers();
+}
+function refreshMarkers(){ /* sederhana: biarkan marker; anchor sudah dihapus dari render */ }
+function undo(){
+  const rows=$("applied").querySelectorAll(".it");
+  if(!rows.length){ toast("Belum ada yang bisa di-undo"); return; }
+  const last=rows[rows.length-1];
+  const t0=last.querySelector(".tm").textContent;
+  const entry=[...active].reverse().find(x=>fmt(x.t0)===t0);
+  last.querySelector(".undo").click();
+  if(entry) toast("Undo: <code>"+entry.code+"</code> dihapus");
+}
+function fmt(t){ t=Math.max(0,t); return "00:"+String(Math.floor(t)).padStart(2,"0")+"."+Math.floor((t%1)*10); }
+
+/* ── Menggambar satu bingkai ── */
+function renderScene(g, t, fx, thumb){
+  const W=760, H=836;
+  const has=(f)=>fx.some(a=>a.fx===f && t>=a.t0 && t<a.t0+a.dur);
+  const get=(f)=>fx.find(a=>a.fx===f && t>=a.t0 && t<a.t0+a.dur);
+
+  /* latar */
+  let grd=g.createLinearGradient(0,0,0,H);
+  if(!has("bgswap")){ grd.addColorStop(0,"#132a4a"); grd.addColorStop(1,"#0b1626"); }
+  else { grd.addColorStop(0,"#3a2a52"); grd.addColorStop(1,"#20122e"); }
+  g.fillStyle=grd; g.fillRect(0,0,W,H);
+  g.save(); g.globalAlpha=.12; g.fillStyle="#37DCF2";
+  const off=(t*30)%120;
+  for(let x=-240+off; x<W+240; x+=120){ g.beginPath(); g.moveTo(x,H); g.lineTo(x+90,0); g.lineTo(x+130,0); g.lineTo(x+40,H); g.fill(); }
+  g.restore();
+  if(has("bgswap")){
+    g.fillStyle="rgba(251,191,36,.85)"; g.beginPath(); g.arc(120,140,52,0,7); g.fill();
+    g.fillStyle="rgba(10,6,20,.55)";
+    [[0,470,110,366],[130,410,90,426],[240,500,120,336],[560,430,100,406],[680,480,90,356]].forEach(b=>g.fillRect(b[0],b[1],b[2],b[3]));
+  }
+
+  /* punch-in zoom */
+  let zoom=1;
+  if(t-punchT>=0 && t-punchT<0.8){ const p=(t-punchT)/0.8; zoom=1+0.15*Math.sin(Math.min(1,p*1.4)*Math.PI); }
+  if(!thumb){ g.save(); g.translate(W/2,H/2); g.scale(zoom,zoom); g.translate(-W/2,-H/2); }
+
+  /* grafik batang (layer 2) */
+  const ch=get("chart");
+  if(ch){
+    const ph=Math.min(1,(t-ch.t0)/1.2), e=1-Math.pow(1-ph,3);
+    g.fillStyle="rgba(6,14,26,.88)"; roundRect(g,110,190,540,350,22); g.fill();
+    g.strokeStyle="rgba(55,220,242,.5)"; g.lineWidth=2; roundRect(g,110,190,540,350,22); g.stroke();
+    g.fillStyle="#e8eef6"; g.font="700 26px Segoe UI"; g.textAlign="left";
+    g.fillText("Dana darurat masyarakat",140,238);
+    const vals=[38,47,53], yrs=["2023","2024","2025"], xs=[190,340,490];
+    vals.forEach((v,i)=>{
+      const h=(v/100)*220*e;
+      g.fillStyle=i===2?"#37DCF2":"#1f6f8b";
+      g.fillRect(xs[i],500-h,90,h);
+      g.fillStyle="#e8eef6"; g.font="700 22px Segoe UI"; g.textAlign="center";
+      g.fillText(v+"%",xs[i]+45,488-h*e-8);
+      g.fillStyle="#93a3b8"; g.font="18px Segoe UI"; g.fillText(yrs[i],xs[i]+45,528);
+    });
+    g.fillStyle="#7f93a8"; g.font="16px Segoe UI"; g.textAlign="left";
+    g.fillText("template chart-bar-v1 · data dari kamu",140,522);
+  }
+
+  /* tokoh */
+  const pipA=get("pip");
+  const target=(pipA||thumb&&fx.some(a=>a.fx==="pip"))?1:0;
+  const fac = thumb?target:lerp(pipFac,target,0.12);
+  if(!thumb) pipFac=fac;
+  const bob=has("freeze")?0:Math.sin(t*2.1)*6;
+  if(fac<0.995) drawChar(g, W/2, 500+bob, 1, 1-fac);
+  if(fac>0.005) drawChar(g, 610, 175, .38*(0.6+0.4*fac), fac);
+
+  /* title pop */
+  const tt=get("title");
+  if(tt){
+    const p=Math.min(1,(t-tt.t0)/0.5);
+    const s=1+(1-p)*0.6*(2-p);
+    g.save(); g.translate(W/2,130); g.scale(s,s); g.globalAlpha=Math.min(1,p*1.6)*Math.min(1,Math.max(0,(tt.t0+tt.dur-t)/0.5));
+    g.fillStyle="rgba(6,14,26,.75)"; roundRect(g,-290,-52,580,104,20); g.fill();
+    g.strokeStyle="#37DCF2"; g.lineWidth=2; roundRect(g,-290,-52,580,104,20); g.stroke();
+    g.fillStyle="#fff"; g.font="800 34px Segoe UI"; g.textAlign="center";
+    g.fillText("3 KEBIASAAN GAGAL NABUNG",0,12);
+    g.restore();
+  }
+
+  /* lower third */
+  const lt=get("lower");
+  if(lt){
+    g.fillStyle="rgba(6,14,26,.8)"; roundRect(g,60,H-300,330,58,12); g.fill();
+    g.fillStyle="#37DCF2"; g.fillRect(60,H-300,5,58);
+    g.fillStyle="#fff"; g.font="700 22px Segoe UI"; g.textAlign="left"; g.fillText("Kai — Kreator Keuangan",82,H-265);
+  }
+
+  /* pencacah angka */
+  const sc=get("counter");
+  if(sc){
+    const p=Math.min(1,(t-sc.t0)/1.5), e=1-Math.pow(1-p,3);
+    g.fillStyle="rgba(6,14,26,.9)"; roundRect(g,190,330,380,170,20); g.fill();
+    g.strokeStyle="rgba(251,191,36,.6)"; g.lineWidth=2; roundRect(g,190,330,380,170,20); g.stroke();
+    g.fillStyle="#fbbf24"; g.font="800 76px Segoe UI"; g.textAlign="center";
+    g.fillText(Math.round(53*e)+"%",380,430);
+    g.fillStyle="#93a3b8"; g.font="19px Segoe UI"; g.fillText("belum punya dana darurat",380,470);
+  }
+
+  /* callout */
+  const co=get("callout");
+  if(co){ g.strokeStyle="#fbbf24"; g.lineWidth=3; g.beginPath(); g.ellipse(580,300,120,60,0,0,7); g.stroke();
+    g.fillStyle="#fbbf24"; g.font="700 20px Segoe UI"; g.textAlign="center"; g.fillText("angka kunci",580,395); }
+
+  /* end card */
+  const ec=get("endcard");
+  if(ec){
+    const p=Math.min(1,(t-ec.t0)/0.4);
+    g.fillStyle="rgba(4,10,18,"+(0.72*p)+")"; g.fillRect(0,0,W,H);
+    g.globalAlpha=p; g.fillStyle="#37DCF2"; g.font="800 58px Segoe UI"; g.textAlign="center";
+    g.fillText("FOLLOW ✓",W/2,H/2-10);
+    g.fillStyle="#e8eef6"; g.font="24px Segoe UI"; g.fillText("untuk tips keuangan mingguan",W/2,H/2+42);
+    g.globalAlpha=1;
+  }
+
+  if(!thumb) g.restore();
+
+  /* LUT hangat */
+  if(has("lut")){ g.fillStyle="rgba(255,150,60,.10)"; g.fillRect(0,0,W,H); g.fillStyle="rgba(40,80,180,.07)"; g.fillRect(0,0,W,H); }
+
+  /* letterbox */
+  const lb=get("letterbox");
+  if(lb){ const p=Math.min(1,(t-lb.t0)/0.5), h=86*p;
+    g.fillStyle="#000"; g.fillRect(0,0,W,h); g.fillRect(0,H-h,W,h); }
+
+  /* fade to black */
+  const fd=get("fade");
+  if(fd){ const p=Math.min(1,(t-fd.t0)/Math.max(.4,fd.dur));
+    g.fillStyle="rgba(0,0,0,"+p+")"; g.fillRect(0,0,W,H); }
+
+  /* hard cut flash */
+  const fl=get("flash");
+  if(fl){ const p=Math.max(0,1-(t-fl.t0)/Math.max(.15,fl.dur));
+    g.fillStyle="rgba(255,255,255,"+(p*.85)+")"; g.fillRect(0,0,W,H); }
+
+  /* lencana slow motion / freeze */
+  const sm=get("slowmo");
+  if(sm) drawBadge(g,"0.5× SLOW","rgba(55,220,242,.9)");
+  const fz=get("freeze");
+  if(fz) drawBadge(g,"❚❚ FREEZE","rgba(251,191,36,.9)");
+
+  /* takarir per kata + sorot kata pemicu */
+  const line=CAPTIONS.find(n=>t>=n.t0&&t<n.t1);
+  if(line && (capsOn || has("caption") || thumb)){
+    const ws=line.words;
+    const chars=ws.reduce((n,w)=>n+w.txt.length,0);
+    const size=Math.min(28, Math.floor(660/(chars*0.5)));
+    g.font="600 "+size+"px Segoe UI";
+    const spaceW=g.measureText(" ").width*0.9;
+    const total=ws.reduce((n,w)=>n+g.measureText(w.txt).width,0)+spaceW*(ws.length-1);
+    let x=(W-total)/2; const y=H-190+41;
+    g.fillStyle="rgba(4,10,18,.82)"; roundRect(g,(W-total)/2-28,H-190,total+56,64,14); g.fill();
+    g.strokeStyle="rgba(255,255,255,.14)"; g.lineWidth=1.5; roundRect(g,(W-total)/2-28,H-190,total+56,64,14); g.stroke();
+    ws.forEach(w=>{
+      g.fillStyle=w.hit?"#fbbf24":"#e8eef6";
+      g.textAlign="left";
+      g.fillText(w.txt,x,y);
+      x+=g.measureText(w.txt).width+spaceW;
+    });
+  }
+}
+function drawBadge(g,txt,col){
+  g.save(); g.font="700 26px Segoe UI";
+  const w=g.measureText(txt).width+44;
+  g.fillStyle="rgba(4,10,18,.8)"; roundRect(g,36,40,w,56,14); g.fill();
+  g.strokeStyle=col; g.lineWidth=2; roundRect(g,36,40,w,56,14); g.stroke();
+  g.fillStyle=col; g.textAlign="left"; g.fillText(txt,58,77);
+  g.restore();
+}
+function drawChar(g,x,y,s,op){
+  g.save(); g.translate(x,y); g.scale(s,s); g.globalAlpha=op===undefined?1:op;
+  g.fillStyle="#12b5a4"; roundRect(g,-115,80,230,300,90); g.fill();
+  g.fillStyle="#f4c9a3"; g.beginPath(); g.arc(0,0,95,0,7); g.fill();
+  g.fillStyle="#2b2b33"; g.beginPath(); g.arc(0,-30,95,Math.PI*1.05,Math.PI*1.95); g.fill();
+  g.fillStyle="#26303d";
+  g.beginPath(); g.arc(-32,0,9,0,7); g.fill();
+  g.beginPath(); g.arc(32,0,9,0,7); g.fill();
+  g.strokeStyle="#26303d"; g.lineWidth=5; g.beginPath(); g.arc(0,22,26,0.15*Math.PI,0.85*Math.PI); g.stroke();
+  g.restore();
+}
+function roundRect(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+function lerp(a,b,k){ return a+(b-a)*k; }
+
+/* ── Putar/jeda + loop ── */
+function loop(ts){
+  if(stopLoop) return;
+  const dt=Math.min(0.05,(ts-lastTs)/1000||0); lastTs=ts;
+  if(playing){ tCur+=dt; if(tCur>=DUR){ tCur=DUR; setPlay(false); } }
+  renderScene(ctx,tCur,active,false);
+  $("fill").style.width=(tCur/DUR*100)+"%";
+  $("tcur").textContent=fmt(tCur)+" / 32";
+  checkAuto(); checkSutra();
+  requestAnimationFrame(loop);
+}
+function setPlay(v){
+  playing=v; $("playbtn").textContent=v?"❚❚":"▶";
+  if(!v){ $("vidhint").classList.add("show"); setTimeout(()=>$("vidhint").classList.remove("show"),2600); }
+  else $("vidhint").classList.remove("show");
+}
+function togglePlay(){ setPlay(!playing); if(!playing) openRadialAtCenter(); }
+function seek(t){ tCur=Math.max(0,Math.min(DUR,t)); checkAuto(true); }
+
+/* ═══════════ TAHAP 3 — STUDIO ═══════════ */
+function startStudio(){
+  $("btn-back-studio").onclick=()=>show(mode==="m2"?"m2review":"tiru");
+  show("studio");
+  active=[]; pipFac=0; pipTarget=false; bgAlt=false; tCur=0; setPlay(false);
+  capsOn = (mode==="m2");  /* di Metode 2, takarir dari naskahmu aktif sejak awal */
+  $("track").querySelectorAll(".marker").forEach(m=>m.remove());
+  $("applied").innerHTML='<div class="empty">Belum ada anchor. Ketuk video untuk pause &amp; menambah efek, atau tunggu saran sutradara.</div>';
+  const acc=ANCHORS.filter(a=>a.status==="acc").sort((a,b)=>a.t-b.t);
+  acc.forEach(a=>{ a.fired=false; });
+  pending=acc;
+  $("vidhint").classList.add("show");
+  setTimeout(()=>$("vidhint").classList.remove("show"),3500);
+  buildSutradara();
+  toast(mode==="m2" ? "Studio siap — anchor pemicu naskah aktif otomatis · takarir dari VO-mu" : "Studio siap — anchor diterima akan aktif otomatis");
+}
+let pending=[];
+function checkAuto(force){
+  pending.forEach(a=>{
+    if(!a.fired && tCur>=a.t){
+      a.fired=true;
+      const dup=active.some(x=>x.fx===a.fx && Math.abs(x.t0-a.t)<2);
+      if(!dup){ applyFx(a,true); toast("Auto: <code>"+a.code+"</code> "+a.name+(mode==="m2"?" (pemicu naskah)":" (dari Tiru)")); }
+    }
+  });
+}
+/* ── Sutradara ── */
+let sugQ=[], curSug=null;
+function buildSutradara(){
+  const accFx=f=>ANCHORS.some(a=>a.fx===f&&a.status==="acc");
+  sugQ=[{t:.6, who:"Sutradara · FX-D15", msg:"Video terbuka rata. Aku pasang <b>Letterbox</b> biar ada rasa sinematik?", fx:"letterbox", code:"FX-D15", name:"Letterbox", dur:999}];
+  if(mode==="m1"){
+    if(!accFx("pip")||!accFx("chart"))
+      sugQ.push({t:8.7, who:"Sutradara · LAY-B01 + TXT-C06", msg:"Kamu baru bilang <b>“statistik”</b> — momen bukti! Pasang <b>PiP Corner</b> + <b>Grafik Batang</b> sekarang?", fx:"combo", code:"LAY-B01", name:"Komposisi Bukti", dur:9});
+    sugQ.push({t:15.2, who:"Sutradara · TXT-C07", msg:"Angka <b>53 persen</b> baru disebut. Tambahkan <b>Pencacah Angka</b> biar nempel?", fx:"counter", code:"TXT-C07", name:"Pencacah 53%", dur:4});
+    if(!accFx("fullret"))
+      sugQ.push({t:23.3, who:"Sutradara · LAY-B09", msg:"Narasi masuk kesimpulan. Kembalikan tokoh ke <b>layar penuh</b>?", fx:"fullret", code:"LAY-B09", name:"Layar Penuh", dur:1.2});
+  } else {
+    if(!accFx("counter")){
+      const h=m2Hits.find(x=>x.entry.fx==="counter");
+      if(h) sugQ.push({t:Math.min(DUR-2,h.t+1.5), who:"Sutradara · TXT-C07", msg:"Angka <b>“"+h.word+"”</b> kamu ucapkan di dtk "+h.t.toFixed(1)+" — pasang <b>Pencacah Angka</b> di sana?", fx:"counter", code:"TXT-C07", name:"Pencacah Angka", dur:4});
+    }
+    if(!accFx("fullret"))
+      sugQ.push({t:23.3, who:"Sutradara · LAY-B09", msg:"Narasimu masuk kesimpulan. Kembalikan tokoh ke <b>layar penuh</b>?", fx:"fullret", code:"LAY-B09", name:"Layar Penuh", dur:1.2});
+  }
+  curSug=null; hideSutra();
+}
+function checkSutra(){
+  if(curSug || !sugQ.length) return;
+  const s=sugQ[0];
+  if(tCur>=s.t){ sugQ.shift(); curSug=s;
+    $("s-who").textContent=s.who; $("s-msg").innerHTML=s.msg; $("scard").classList.add("show");
+  }
+}
+function sutraAnswer(yes){
+  const s=curSug; curSug=null; hideSutra();
+  if(yes && s){
+    if(s.fx==="combo"){
+      const r1=applyFx({code:"LAY-B01",name:"PiP Corner",fx:"pip",dur:12},true);
+      const r2=applyFx({code:"TXT-C06",name:"Grafik Batang",fx:"chart",dur:8},true);
+      toast((r1||r2)?"Komposisi Bukti terpasang — 2 anchor":"Sudah aktif di momen ini");
+    }
+    else applyFx({code:s.code,name:s.name,fx:s.fx,dur:s.dur},true);
+  }
+}
+function hideSutra(){ $("scard").classList.remove("show"); }
+
+/* ═══════════ RADIAL MENU ═══════════ */
+const CATS=[
+  {label:"Komposisi", items:[
+    {code:"LAY-B01",name:"PiP Sudut",fx:"pip",dur:12},
+    {code:"LAY-B09",name:"Layar Penuh",fx:"fullret",dur:1.2},
+    {code:"LAY-B04",name:"Ganti Latar",fx:"bgswap",dur:12}]},
+  {label:"Grafik", items:[
+    {code:"TXT-C06",name:"Grafik Batang",fx:"chart",dur:8},
+    {code:"TXT-C07",name:"Pencacah 53%",fx:"counter",dur:4},
+    {code:"TXT-C05",name:"Penunjuk",fx:"callout",dur:4}]},
+  {label:"Efek", items:[
+    {code:"FX-D01",name:"Nuansa Hangat",fx:"lut",dur:999},
+    {code:"FX-D15",name:"Letterbox",fx:"letterbox",dur:999},
+    {code:"CUT-A08",name:"Punch-In",fx:"punch",dur:0.8},
+    {code:"CUT-B02",name:"Fade Hitam",fx:"fade",dur:1.5}]},
+  {label:"Teks", items:[
+    {code:"TXT-C01",name:"Judul Pop",fx:"title",dur:3},
+    {code:"TXT-C04",name:"Lower Third",fx:"lower",dur:6},
+    {code:"TXT-C03",name:"Takarir",fx:"caption",dur:999}]},
+  {label:"Audio", items:[
+    {code:"AUD-E01",name:"Music Duck",fx:"duck",dur:999},
+    {code:"AUD-E03",name:"SFX Sting",fx:"sfx",dur:0}]},
+];
+let radialOpen=false, radialLvl=0, radialXY=[190,215];
+function openRadialAtCenter(){ openRadial(190,215); }
+function openRadial(x,y){
+  if(radialOpen) return;
+  setPlay(false);
+  radialOpen=true; radialLvl=0; radialXY=[x,y];
+  if(mode==="m1" && tCur>=TRIGGER.from && tCur<=TRIGGER.to) toast("Detik pas — trigger <b>“statistik”</b> ada di sini ✓");
+  drawRadial();
+  $("radial").classList.add("show");
+}
+function closeRadial(){ radialOpen=false; $("radial").classList.remove("show"); $("radial").innerHTML=""; }
+function drawRadial(){
+  const L=$("radial"); L.innerHTML='<div class="veil"></div>';
+  const [cx,cy]=radialXY;
+  const veil=L.querySelector(".veil");
+  veil.onclick=closeRadial;
+  const mk=(html,cls,x,y,fn,delay)=>{
+    const el=document.createElement("div"); el.className="ritem "+cls; el.innerHTML=html;
+    el.style.left=x+"px"; el.style.top=y+"px";
+    el.onclick=e=>{ e.stopPropagation(); fn&&fn(); };
+    L.appendChild(el);
+    setTimeout(()=>el.classList.add("show"),delay);
+    return el;
+  };
+  if(radialLvl===0){
+    CATS.forEach((c,i)=>{
+      const ang=-90+i*(360/CATS.length), rad=104;
+      mk(c.label,"", cx+rad*Math.cos(ang*Math.PI/180), cy+rad*Math.sin(ang*Math.PI/180),
+        ()=>{ radialCat=i; radialLvl=1; drawRadial(); }, 40+i*35);
+    });
+    mk("✕<br>tutup","center",cx,cy,closeRadial,0);
+    const lb=document.createElement("div"); lb.className="rlbl show"; lb.style.left=(cx-118)+"px"; lb.style.top=(cy+152)+"px";
+    lb.textContent="pilih kategori efek · posisi "+fmt(tCur); L.appendChild(lb);
+  } else {
+    const catIdx=radialLvl===1?radialCat:0;
+    CATS[catIdx].items.forEach((it,i)=>{
+      const ang=-90+i*(360/Math.max(4,CATS[catIdx].items.length+1)), rad=118;
+      mk("<span class='c'>"+it.code+"</span>"+it.name,"", cx+rad*Math.cos(ang*Math.PI/180), cy+rad*Math.sin(ang*Math.PI/180),
+        ()=>{ closeRadial(); applyFx({code:it.code,name:it.name,fx:it.fx,dur:it.dur}); }, 40+i*35);
+    });
+    mk("←<br>kembali","center",cx,cy,()=>{ radialLvl=0; drawRadial(); },0);
+  }
+}
+let radialCat=0;
+/* penanganan ketukan video */
+$("vidwrap").addEventListener("click", e=>{
+  if(radialOpen) return;
+  const r=$("vidwrap").getBoundingClientRect();
+  const x=e.clientX-r.left, y=e.clientY-r.top;
+  openRadial(x,y);
+});
+$("track").addEventListener("click", e=>{
+  const r=$("track").getBoundingClientRect();
+  seek((e.clientX-r.left)/r.width*DUR);
+});
+document.addEventListener("keydown", e=>{
+  if(e.code==="Space" && screen==="studio"){ e.preventDefault(); togglePlay(); }
+  if(e.key==="u"||e.key==="U"){ undo(); }
+});
+
+/* ═══════════ EKSPOR ═══════════ */
+function startExport(){
+  show("export");
+  setPlay(false); stopLoop=true; closeRadial();
+  const steps=["decode video sumber…","render "+active.length+" anchor (layer 1 & 2)…","encode hardware H.264…","mux + tulis file…"];
+  let p=0;
+  const iv=setInterval(()=>{
+    p+=Math.random()*9+4;
+    if(p>=100){
+      p=100; clearInterval(iv);
+      const n=active.length;
+      $("expbody").innerHTML='<div class="check">✓</div><h2>Ekspor selesai</h2>'+
+        '<p class="big"><b>'+n+' anchor</b> · 32 detik · 1080×1920'+
+        (mode==="m2"?"<br>Semua dari <b>naskah VO</b> kamu — tanpa timeline.":"")+'<br>'+
+        'Tanpa timeline: <b>ketik 1×</b> di awal, sisanya <b>ketukan konfirmasi</b>.<br>'+
+        'Di editor timeline, rangkaian ini butuh ±20 langkah manual.</p>'+
+        '<div style="height:18px"></div><button class="btn" style="width:auto;padding:12px 26px" onclick="location.reload()">Ulangi demo</button>';
+    } else {
+      $("pct").textContent=Math.floor(p)+"%";
+      $("expstep").textContent=steps[Math.min(steps.length-1,Math.floor(p/26))];
+    }
+  },260);
+}
+
+/* ═══════════ BOOT ═══════════ */
+(function boot(){
+  setSteps(1);
+  buildCaptionsFromNarration();
+  const NW=KDICT.reduce((n,e)=>n+e.w.length,0);
+  $("kdcountline").innerHTML="<br><b>Kamus aktif:</b> "+NW+" kata pemicu ID+EN + pola angka (% / persen / kali lipat) · 3 lapis presisi.";
+})();
+</script>
+</body>
+</html>
