@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "reference": {
+    "title": "CONTOH-ILUSTRATIF-45s",
+    "duration_sec": 45,
+    "aspect_ratio": "9:16",
+    "language": "id"
+  },
+  "style": {
+    "family": "documentary-narrative",
+    "palette_mood": "warm-neutral",
+    "tempo": { "cuts_per_minute": 26, "avg_shot_sec": 2.3 },
+    "energy_curve": [0.9, 0.5, 0.8, 0.6]
+  },
+  "beats": [
+    { "id": "b1", "type": "hook", "start_sec": 0.0, "end_sec": 3.5, "summary": "pertanyaan pembuka" },
+    { "id": "b2", "type": "konteks", "start_sec": 3.5, "end_sec": 12.0, "summary": "latar masalah" },
+    { "id": "b3", "type": "bukti", "start_sec": 12.0, "end_sec": 30.0, "summary": "data dan grafik" },
+    { "id": "b4", "type": "payoff", "start_sec": 30.0, "end_sec": 41.0, "summary": "kesimpulan utama" },
+    { "id": "b5", "type": "CTA", "start_sec": 41.0, "end_sec": 45.0, "summary": "ajakan mengikuti" }
+  ],
+  "anchors": [
+    {
+      "id": "a1", "beat_id": "b1", "t_sec": 1.0, "tolerance_sec": 0.5,
+      "technique": "TXT-C01", "layer": 2,
+      "params": { "text": "3 KESALAHAN UMUM", "anim": "pop", "duration_sec": 3.0 },
+      "confidence": 0.92
+    },
+    {
+      "id": "a2", "beat_id": "b3", "t_sec": 12.4, "tolerance_sec": 0.8,
+      "technique": "LAY-B01", "layer": 1,
+      "params": { "position": "top-right", "scale": 0.35, "duration_sec": 14.0 },
+      "trigger": { "type": "keyword", "value": "statistik" },
+      "confidence": 0.88
+    },
+    {
+      "id": "a3", "beat_id": "b3", "t_sec": 13.0, "tolerance_sec": 0.8,
+      "technique": "TXT-C06", "layer": 2,
+      "asset": { "type": "template", "ref": "chart-bar-v1" },
+      "params": { "data": [32, 58, 74], "duration_sec": 8.0 },
+      "confidence": 0.85
+    },
+    {
+      "id": "a4", "beat_id": "b4", "t_sec": 30.2, "tolerance_sec": 1.0,
+      "technique": "LAY-B09", "layer": 1,
+      "params": { "duration_sec": 1.2 },
+      "confidence": 0.9
+    },
+    {
+      "id": "a5", "beat_id": "b5", "t_sec": 42.0, "tolerance_sec": 0.5,
+      "technique": "TXT-C09", "layer": 2,
+      "params": { "cta": "ikuti", "duration_sec": 3.0 },
+      "confidence": 0.95
+    }
+  ],
+  "audio_map": {
+    "bpm": 96,
+    "beats_sec": [0.0, 0.63, 1.25, 1.88],
+    "duck_regions": [ { "start_sec": 3.5, "end_sec": 41.0 } ]
+  },
+  "unknown_techniques": [
+    { "t_sec": 37.5, "observed": "transisi sapu bentuk kustom", "suggestion": "evaluasi sebagai varian FX-D12" }
+  ]
+}

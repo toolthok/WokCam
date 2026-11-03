@@ -1,0 +1,13 @@
+{
+  "name": "generate-katalog",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Generator DOCX dan ekspor data untuk Katalog Teknik Editing Mobile v1.0",
+  "scripts": {
+    "export": "node export_data.js",
+    "generate": "node generate.js"
+  },
+  "dependencies": {
+    "docx": "^8.5.0"
+  }
+}
