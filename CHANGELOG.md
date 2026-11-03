@@ -1,5 +1,12 @@
 # Changelog
 
+## v6 (3 November 2026)
+- VO diubah jadi subtitle bergaya film dengan timestamp per kata (Whisper lewat transformers.js, diunduh sekali dari CDN).
+- Efek dipicu per kata lewat database kata → editing; database bisa diedit, diekspor/impor, dan belajar dari koreksi.
+- Hingga 3 efek per subtitle; `jump-cut` dan `b-roll` kini punya efek.
+- Perbaikan: pemotongan subjek terbalik (kini dibalik secara default, ada kotak centang untuk membalik lagi).
+- Ekspor SRT.
+
 ## v5 (3 November 2026)
 - Dokumen proyek lengkap di `docs/DOKUMEN_PROYEK.md`; README ditulis ulang.
 

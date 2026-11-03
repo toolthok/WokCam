@@ -81,6 +81,7 @@ Fungsi inti di `index.html`:
 | 2. Naskah → kartu | Pecah kalimat, pilih gaya, konfirmasi, ganti gaya, salin rencana JSON | Selesai, teruji di HP |
 | 3. Studio dasar | Upload footage + VO, pratinjau kanvas, ekspor rekam real-time | Dibangun, belum teruji penuh |
 | 4. Gaya lanjutan | 27 teknik, termasuk potong subjek dan ganti latar | Dibangun, belum teruji |
+| 3b. VO → subtitle + database kata | Transkripsi VO (Whisper di browser), subtitle bergaya film, efek dipicu per kata, database kata → editing yang bisa diedit dan belajar dari koreksi | Dibangun, belum teruji |
 | 5. Dokumentasi | Dokumen ini | Selesai |
 
 Riwayat repo lama (katalog 63 teknik, prototipe radial PauseCut, crosswalk 900 token) sudah diganti total. Konsep yang dipertahankan: kamus pemicu, pembagian teknik per keluarga, dan etika tiru pola.
@@ -92,7 +93,7 @@ Riwayat repo lama (katalog 63 teknik, prototipe radial PauseCut, crosswalk 900 t
 | `hook` | Hook Cepat | Potongan cepat + teks besar di 2 detik pertama | Zoom awal 0,35 dtk (potongan cepat + teks besar belum ada) |
 | `punch-zoom` | Zoom Punch | Zoom mendadak 110–120% di kata penekanan | Zoom 115% lalu kembali dalam 0,35 dtk |
 | `big-number` | Angka Besar | Angka atau persen tampil besar di layar | Angka/persen dari kalimat tampil besar di tengah |
-| `jump-cut` | Jump Cut | Buang jeda, potong rapat antar kalimat | Belum ada efek visual (butuh banyak klip) |
+| `jump-cut` | Jump Cut | Buang jeda, potong rapat antar kalimat | Zoom 112% dengan geser kiri/kanan bergantian (belum multi-klip) |
 | `speed-ramp` | Speed Ramp | Melambat lalu ngebut | 2x di paruh pertama segmen |
 | `freeze` | Freeze Frame | Bekukan frame, tambah teks keterangan | Video berhenti 0,7 dtk |
 | `glitch` | Glitch | Gangguan singkat untuk kejutan | Irisan acak bergeser 0,3 dtk |
@@ -100,7 +101,7 @@ Riwayat repo lama (katalog 63 teknik, prototipe radial PauseCut, crosswalk 900 t
 | `flash` | Flash Putih | Kilat singkat sebagai transisi | Kilat putih 0,2 dtk |
 | `text-pop` | Teks Pop | Kata kunci muncul membal | Kata kunci besar muncul membal |
 | `kinetic` | Teks Kinetik | Teks bergerak mengikuti ucapan | Subtitel muncul kata demi kata |
-| `b-roll` | B-roll | Tutup dengan footage pendukung | Belum ada efek (butuh footage kedua) |
+| `b-roll` | B-roll | Tutup dengan footage pendukung | Ken Burns pada video, atau gambar latar bila diunggah |
 | `slowmo` | Slow Motion | Pelan untuk kesan dramatis | 0,5x sepanjang segmen |
 | `whoosh` | Whoosh | Efek suara saat pindah bagian | Frame geser masuk 0,25 dtk (belum ada suara) |
 | `cta` | CTA Akhir | Ajakan penutup: teks + ikon aksi | Tombol "Follow" di bawah layar |
@@ -154,6 +155,12 @@ Array objek: `id` (kode permanen, huruf kecil dengan tanda hubung), `nama`, `iko
 }
 ```
 Aturan: `teknik` wajib ada di katalog; keyakinan <0,75 menuntut pratinjau sebelum diterapkan. Skema akan dibekukan saat Tahap 7 dimulai.
+
+### 8.5 Database kata → editing (v6)
+- Bawaan: `data/pemicu.json`. Milik pengguna: disimpan di browser (`localStorage`, kunci `wokcam.db`), berbentuk `{"kata": "kode-teknik"}`, keyakinan 0,9, menimpa bawaan.
+- Tiap kata yang ada di database memicu efeknya **tepat saat kata itu diucapkan** (timestamp dari transkripsi). Satu subtitle bisa memuat hingga 3 efek.
+- Belajar dari koreksi: saat mengganti efek, isi kolom "Ingat kata ini"; kata itu masuk database dan langsung dipasang di semua subtitle yang memuatnya.
+- Panel database bisa menambah, menghapus, menyalin, dan mengimpor JSON.
 
 ## 9. Cara menjalankan dan memperbarui
 

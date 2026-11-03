@@ -5,6 +5,7 @@ Video pendek dengan cepat: tulis narasi, app memilihkan gaya editing per kalimat
 PWA statis, tanpa server. Aktifkan GitHub Pages (branch `main`, folder root) lalu buka URL-nya di browser Chromium.
 
 ## Yang sudah jalan
+- Voice-over diubah jadi subtitle dengan timestamp per kata; efek dipicu tepat saat kata diucapkan lewat database kata → editing yang bisa kamu edit.
 - Naskah dipecah per kalimat, gaya dipilih otomatis dari kamus pemicu (≥85% pasti, sisanya bertanda ?).
 - 27 teknik: potongan visual, teks, efek, serta potong subjek dan ganti latar.
 - Studio: upload footage, voice-over, dan latar pengganti; pratinjau; ekspor MP4/WebM.
