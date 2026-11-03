@@ -1,13 +1,27 @@
 # WokCam
 
-Naskah → segmen → gaya editing otomatis per kalimat. PWA, tanpa server.
+Video pendek dengan cepat: tulis narasi, app memilihkan gaya editing per kalimat, kamu mengoreksi, lalu ekspor. Tanpa timeline.
 
-**Tahap 2 (sekarang):** tempel naskah, app memecah per kalimat, memilih teknik lewat kamus pemicu (≥85% otomatis, sisanya bertanda "?" untuk dikonfirmasi), gaya bisa diganti per kartu, rencana bisa disalin sebagai JSON.
+PWA statis, tanpa server. Aktifkan GitHub Pages (branch `main`, folder root) lalu buka URL-nya di browser Chromium.
 
-Jalankan: aktifkan GitHub Pages (branch main, folder root). Tidak bisa dibuka via file:// karena memuat data/*.json lewat fetch.
+## Yang sudah jalan
+- Naskah dipecah per kalimat, gaya dipilih otomatis dari kamus pemicu (≥85% pasti, sisanya bertanda ?).
+- 27 teknik: potongan visual, teks, efek, serta potong subjek dan ganti latar.
+- Studio: upload footage, voice-over, dan latar pengganti; pratinjau; ekspor MP4/WebM.
 
-Data: `data/teknik.json` (15 teknik inti), `data/pemicu.json` (kamus pemicu).
+## Dokumentasi
+- [Dokumen proyek lengkap](docs/DOKUMEN_PROYEK.md): tujuan, arsitektur, katalog, format data, batasan, peta jalan sampai tujuan akhir.
+- [Changelog](CHANGELOG.md)
 
-Gaya cutout (Cutout Outline, Latar Blur, Ganti Latar, Subjek Mengecil, Subjek Geser) memakai MediaPipe Selfie Segmenter yang diunduh dari CDN saat pertama dipakai (perlu internet; hanya untuk subjek orang).
+## Struktur
+```
+index.html          aplikasi (CSS + HTML + JS)
+sw.js               service worker
+manifest.webmanifest, icon.svg
+data/teknik.json    katalog teknik
+data/pemicu.json    kamus pemicu
+docs/               dokumentasi
+```
 
-Berikutnya: transkripsi VO (Whisper di browser) → pratinjau → ekspor MP4 → jalur ATM.
+## Berikutnya
+Transkripsi VO dengan timestamp per kata, banyak klip, audio, ekspor lebih kuat, jalur ATM. Lihat peta jalan di dokumen proyek.
