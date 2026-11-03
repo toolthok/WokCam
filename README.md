@@ -8,4 +8,6 @@ Jalankan: aktifkan GitHub Pages (branch main, folder root). Tidak bisa dibuka vi
 
 Data: `data/teknik.json` (15 teknik inti), `data/pemicu.json` (kamus pemicu).
 
+Gaya cutout (Cutout Outline, Latar Blur, Ganti Latar, Subjek Mengecil, Subjek Geser) memakai MediaPipe Selfie Segmenter yang diunduh dari CDN saat pertama dipakai (perlu internet; hanya untuk subjek orang).
+
 Berikutnya: transkripsi VO (Whisper di browser) → pratinjau → ekspor MP4 → jalur ATM.

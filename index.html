@@ -21,7 +21,7 @@ dialog::backdrop{background:#000a}#opts button{display:flex;gap:10px;width:100%;
 h2{font-size:20px;margin:28px 0 6px}.f{display:block;margin:10px 0;color:var(--mu)}.f input{display:block;width:100%;margin-top:4px;color:var(--tx)}
 canvas{display:block;margin:12px auto;width:min(100%,calc(70vh*9/16));aspect-ratio:9/16;background:#000;border-radius:12px}
 #st{color:var(--mu);min-height:24px}#dl{display:inline-block;margin-top:8px;color:var(--gold);font-weight:700}button:disabled{opacity:.4}
-</style></head><body><main>
+dialog{overflow:auto}</style></head><body><main>
 <h1>Wok<i>Cam</i></h1><p class="sub">Tempel naskah. Gaya editing dipilihkan per kalimat.</p>
 <textarea id="src" placeholder="Tulis atau tempel naskah voice-over di sini…"></textarea>
 <div class="bar"><button class="go" id="go">Pecah jadi segmen</button><button id="sample">Contoh naskah</button></div>
@@ -30,6 +30,7 @@ canvas{display:block;margin:12px auto;width:min(100%,calc(70vh*9/16));aspect-rat
 <section id="studio" hidden><h2>Bahan video</h2>
 <label class="f">Footage (video)<input type="file" id="vid" accept="video/*"></label>
 <label class="f">Voice-over (audio, opsional)<input type="file" id="aud" accept="audio/*"></label>
+<label class="f">Latar pengganti (gambar, opsional)<input type="file" id="bgf" accept="image/*"></label>
 <canvas id="cv" width="540" height="960"></canvas>
 <div class="bar"><button class="go" id="play">Pratinjau</button><button id="rec">Ekspor video</button></div>
 <div id="st"></div><a id="dl" hidden></a></section>
@@ -87,15 +88,45 @@ function cap(s,p,rev){cx.font='800 46px '+FN;cx.textAlign='left';cx.textBaseline
  ws.forEach((w,i)=>{const m=cx.measureText(w).width;if(x+m>CW-90&&L[L.length-1].length){L.push([]);x=0}L[L.length-1].push({w,m,i});x+=m+sp});
  const c=Math.min(ws.length-1,Math.floor(p*ws.length)),y0=CH*.68;
  L.forEach((l,r)=>{let x=(CW-l.reduce((a,o)=>a+o.m+sp,-sp))/2;l.forEach(o=>{if(!(rev&&o.i>c)){cx.lineWidth=9;cx.strokeStyle='#000';cx.strokeText(o.w,x,y0+r*58);cx.fillStyle=o.i===c?'#f2b01e':'#fff';cx.fillText(o.w,x,y0+r*58)}x+=o.m+sp})})}
+const ez=x=>1-Math.pow(1-Math.min(1,Math.max(0,x)),3),CUT=['cutout-outline','bg-blur','bg-swap','subject-shrink','subject-slide'];
+let seg=null,segErr='',bgImg=null;const mk=document.createElement('canvas'),cc=document.createElement('canvas'),sc=document.createElement('canvas');cc.width=sc.width=CW;cc.height=sc.height=CH;
+$('#bgf').onchange=e=>{const f=e.target.files[0];if(!f){bgImg=null;return}const im=new Image();im.onload=()=>bgImg=im;im.src=URL.createObjectURL(f)};
+async function loadSeg(){if(seg||segErr)return;const B='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+ try{const m=await import(B+'/+esm'),fs=await m.FilesetResolver.forVisionTasks(B+'/wasm'),mk_=d=>m.ImageSegmenter.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite',delegate:d},runningMode:'VIDEO',outputCategoryMask:true,outputConfidenceMasks:false});
+  try{seg=await mk_('GPU')}catch(e){seg=await mk_('CPU')}}catch(e){segErr=String(e.message||e)}}
+function cutout(){const vw=V.videoWidth,vh=V.videoHeight;if(!seg||!vw)return false;const k=Math.max(CW/vw,CH/vh),dw=vw*k,dh=vh*k,ox=(CW-dw)/2,oy=(CH-dh)/2;
+ try{seg.segmentForVideo(V,performance.now(),r=>{const m=r.categoryMask,a=m.getAsUint8Array();mk.width=m.width;mk.height=m.height;const x=mk.getContext('2d'),im=x.createImageData(m.width,m.height);for(let i=0;i<a.length;i++){const o=i*4;im.data[o]=im.data[o+1]=im.data[o+2]=255;im.data[o+3]=a[i]?255:0}x.putImageData(im,0,0)})}catch(e){return false}
+ const c=cc.getContext('2d');c.globalCompositeOperation='source-over';c.clearRect(0,0,CW,CH);c.drawImage(V,ox,oy,dw,dh);c.globalCompositeOperation='destination-in';c.filter='blur(2px)';c.drawImage(mk,ox,oy,dw,dh);c.filter='none';c.globalCompositeOperation='source-over';return true}
+function stamp(sx,sy,scl,out){cx.save();cx.translate(CW/2+sx,CH+sy);cx.scale(scl,scl);cx.translate(-CW/2,-CH);
+ if(out){const s=sc.getContext('2d');s.globalCompositeOperation='source-over';s.clearRect(0,0,CW,CH);s.drawImage(cc,0,0);s.globalCompositeOperation='source-in';s.fillStyle='#fff';s.fillRect(0,0,CW,CH);s.globalCompositeOperation='source-over';for(let a=0;a<16;a++)cx.drawImage(sc,Math.cos(a*Math.PI/8)*9/scl,Math.sin(a*Math.PI/8)*9/scl)}
+ cx.drawImage(cc,0,0);cx.restore()}
+function bgDraw(i){if(bgImg){const w=bgImg.width,h=bgImg.height,k=Math.max(CW/w,CH/h);cx.drawImage(bgImg,(CW-w*k)/2,(CH-h*k)/2,w*k,h*k)}else{const g=cx.createLinearGradient(0,0,CW,CH),hu=(i*47+20)%360;g.addColorStop(0,`hsl(${hu},70%,45%)`);g.addColorStop(1,`hsl(${(hu+50)%360},70%,18%)`);cx.fillStyle=g;cx.fillRect(0,0,CW,CH)}}
+function vdraw(){const vw=V.videoWidth||CW,vh=V.videoHeight||CH,k=Math.max(CW/vw,CH/vh);if(V.readyState>1)cx.drawImage(V,-vw*k/2,-vh*k/2,vw*k,vh*k)}
 function frame(tl,t){
- const s=tl.find(x=>t>=x.t0&&t<x.t0+x.d)||tl[tl.length-1],u=t-s.t0,p=Math.min(1,u/s.d),id=s.g.t;let z=1,dx=0,dy=0;
+ const s=tl.find(x=>t>=x.t0&&t<x.t0+x.d)||tl[tl.length-1],ix=tl.indexOf(s),u=t-s.t0,p=Math.min(1,u/s.d),id=s.g.t;let z=1,dx=0,dy=0,rot=0,fl='none';
  if(id==='punch-zoom'||id==='hook')z=1+.15*Math.max(0,1-u/.35);
+ if(id==='pulse')z=1+.06*Math.pow(Math.max(0,Math.cos(u*Math.PI*4)),4);
+ if(id==='zoom-out')z=1.3-.3*ez(u/.6);
+ if(id==='tilt'){rot=.07*ez(u/.3);z=1.15}
+ if(id==='bw')fl='grayscale(1) contrast(1.15)';
+ if(id==='color-pop')fl='saturate(1.9) contrast(1.1)';
  if(id==='shake'&&u<.5){dx=(Math.random()-.5)*24;dy=(Math.random()-.5)*24}
  if(id==='whoosh'&&u<.25)dx=CW*.3*(1-u/.25);
  V.playbackRate=id==='slowmo'?.5:(id==='speed-ramp'&&u<s.d/2?2:1);
  if(id==='freeze'&&u<.7){if(!V.paused)V.pause()}else if(V.paused)V.play().catch(()=>{});
- cx.save();cx.fillStyle='#000';cx.fillRect(0,0,CW,CH);cx.translate(CW/2+dx,CH/2+dy);cx.scale(z,z);
- const vw=V.videoWidth||CW,vh=V.videoHeight||CH,k=Math.max(CW/vw,CH/vh);if(V.readyState>1)cx.drawImage(V,-vw*k/2,-vh*k/2,vw*k,vh*k);cx.restore();
+ const cut=CUT.includes(id)&&cutout();
+ cx.save();cx.fillStyle='#000';cx.fillRect(0,0,CW,CH);
+ if(cut&&(id==='bg-blur'||id==='cutout-outline')){cx.translate(CW/2,CH/2);cx.filter='blur(16px) brightness(.55)';vdraw();cx.filter='none'}
+ else if(cut)bgDraw(ix);
+ else{cx.translate(CW/2+dx,CH/2+dy);cx.rotate(rot);cx.scale(z,z);cx.filter=fl;vdraw();cx.filter='none'}
+ cx.restore();
+ if(cut){const e=ez(u/.4);
+  if(id==='cutout-outline')stamp(0,0,1+.08*ez(u/.3),true);
+  else if(id==='bg-blur'||id==='bg-swap')stamp(0,0,1,false);
+  else if(id==='subject-shrink')stamp(CW*.18*ez(u/.5),0,1-.45*ez(u/.5),true);
+  else stamp(-CW*(1-e),0,.85,true)}
+ if(id==='mirror'){cx.save();cx.translate(CW,0);cx.scale(-1,1);cx.drawImage(cv,0,0,CW/2,CH,0,0,CW/2,CH);cx.restore()}
+ if(id==='rgb-split'&&u<.6){cx.globalAlpha=.4;cx.globalCompositeOperation='lighter';cx.drawImage(cv,10,0);cx.drawImage(cv,-10,0);cx.globalAlpha=1;cx.globalCompositeOperation='source-over'}
  if(id==='glitch'&&u<.3)for(let i=0;i<6;i++){const y=Math.random()*CH,h=30+Math.random()*60;cx.drawImage(cv,0,y,CW,h,(Math.random()-.5)*50,y,CW,h)}
  if(id==='flash'&&u<.2){cx.fillStyle='rgba(255,255,255,'+(1-u/.2)+')';cx.fillRect(0,0,CW,CH)}
  if(id==='big-number'){const m=s.g.s.match(/\d+(?:[.,]\d+)?\s*(?:%|persen|percent|kali lipat)?/i);big(m?m[0].replace(/\s*(persen|percent)/i,'%'):kw(s.g),u,'#f2b01e')}
@@ -108,7 +139,7 @@ async function run(recording){
  if(busy||!segs.length)return;if(!V.src){$('#st').textContent='Pilih footage dulu.';return}
  busy=true;btn(true);$('#dl').hidden=true;A=null;
  if(aurl){A=new Audio(aurl);await new Promise(r=>{A.onloadedmetadata=r;A.onerror=r})}
- const{total,tl}=plan();let rec,mt='',ch=[],ac;V.currentTime=0;await V.play().catch(()=>{});
+ const{total,tl}=plan();if(segs.some(g=>CUT.includes(g.t))){$('#st').textContent='Memuat model pemotong latar (sekali, perlu internet)…';await loadSeg()}let rec,mt='',ch=[],ac;V.currentTime=0;await V.play().catch(()=>{});
  if(recording){const st=cv.captureStream(30);
   if(A){ac=new AudioContext();const sr=ac.createMediaElementSource(A),ds=ac.createMediaStreamDestination();sr.connect(ds);ds.stream.getAudioTracks().forEach(t=>st.addTrack(t))}
   mt=['video/mp4','video/webm;codecs=vp9,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m))||'';
@@ -118,7 +149,7 @@ async function run(recording){
  await new Promise(done=>{(function loop(){const t=(performance.now()-t0)/1000;if(t>=total)return done();frame(tl,t);$('#st').textContent=(recording?'Merekam ':'Memutar ')+t.toFixed(1)+' / '+total.toFixed(1)+' dtk';requestAnimationFrame(loop)})()});
  A&&A.pause();V.pause();
  if(rec){await new Promise(r=>{rec.onstop=r;rec.stop()});const ext=mt.includes('mp4')?'mp4':'webm',b=new Blob(ch,{type:mt||'video/webm'}),a=$('#dl');a.href=URL.createObjectURL(b);a.download='wokcam.'+ext;a.hidden=false;a.textContent='Unduh video ('+ext+', '+(b.size/1e6).toFixed(1)+' MB)'}
- ac&&ac.close();$('#st').textContent='Selesai.';busy=false;btn(false)}
+ ac&&ac.close();$('#st').textContent='Selesai.'+(segErr?' Pemotong latar gagal dimuat ('+segErr+'), gaya cutout tampil biasa.':'');busy=false;btn(false)}
 $('#play').onclick=()=>run(false);$('#rec').onclick=()=>run(true);
 init();
 </script></body></html>
