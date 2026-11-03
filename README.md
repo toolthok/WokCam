@@ -1,28 +1,40 @@
-# WokCam
+# Auto Explainer Studio v0.2
 
-Video pendek dengan cepat: tulis narasi, app memilihkan gaya editing per kalimat, kamu mengoreksi, lalu ekspor. Tanpa timeline.
+## Fitur saat ini
+- PWA dasar dan cache offline.
+- Bank preset lokal menggunakan IndexedDB.
+- Impor/ekspor bank preset JSON.
+- Ambil 6 sampel frame dari video referensi lokal.
+- Catatan analisis gaya dan simpan sebagai preset.
+- Storyboard awal dari paragraf narasi.
+- Preview animasi Canvas 2D.
+- Ekspor lokal WebM menggunakan MediaRecorder jika didukung browser.
+- Sinkronisasi GitHub Contents API ke `presets/library.json`.
 
-PWA statis, tanpa server. Aktifkan GitHub Pages (branch `main`, folder root) lalu buka URL-nya di browser Chromium.
+## Deploy
+1. Buat repository GitHub baru, misalnya `auto-explainer-studio`.
+2. Upload seluruh file ini ke root repository.
+3. Settings → Pages → Deploy from a branch → `main` / root.
+4. Buka URL GitHub Pages dari Chrome Android.
+5. Menu Chrome → Add to Home screen / Install app.
 
-## Yang sudah jalan
-- Voice-over diubah jadi subtitle dengan timestamp per kata; efek dipicu tepat saat kata diucapkan lewat database kata → editing yang bisa kamu edit.
-- Naskah dipecah per kalimat, gaya dipilih otomatis dari kamus pemicu (≥85% pasti, sisanya bertanda ?).
-- 27 teknik: potongan visual, teks, efek, serta potong subjek dan ganti latar.
-- Studio: upload footage, voice-over, dan latar pengganti; pratinjau; ekspor MP4/WebM.
+## Sinkronisasi preset
+Buat fine-grained personal access token:
+- Repository access: Only select repositories → repository preset khusus.
+- Repository permissions: Contents = Read and write.
+- Metadata read-only otomatis.
+Masukkan username, repository, dan token di tab GitHub. Token hanya berada di memori halaman; jangan simpan di localStorage dan jangan membagikannya. Untuk keamanan lebih tinggi, gunakan repository terpisah khusus preset, bukan repository kode utama.
 
-## Dokumentasi
-- [Dokumen proyek lengkap](docs/DOKUMEN_PROYEK.md): tujuan, arsitektur, katalog, format data, batasan, peta jalan sampai tujuan akhir.
-- [Changelog](CHANGELOG.md)
+## Batasan yang diketahui
+- Analisis referensi saat ini mengekstrak enam sampel frame; belum mendeteksi gerakan secara otomatis atau memahami semantik video.
+- Catatan analisis gaya masih dibantu ChatGPT secara manual.
+- Renderer awal hanya membuat grafis Canvas dan merekam WebM; belum menyatukan footage asli, audio narasi, musik, subtitle otomatis, atau MP4.
+- Performa rendering bergantung pada browser, memori, suhu, dan mode hemat daya Android.
+- Sinkronisasi GitHub memerlukan internet dan token dengan izin yang sesuai.
 
-## Struktur
-```
-index.html          aplikasi (CSS + HTML + JS)
-sw.js               service worker
-manifest.webmanifest, icon.svg
-data/teknik.json    katalog teknik
-data/pemicu.json    kamus pemicu
-docs/               dokumentasi
-```
-
-## Berikutnya
-Transkripsi VO dengan timestamp per kata, banyak klip, audio, ekspor lebih kuat, jalur ATM. Lihat peta jalan di dokumen proyek.
+## Tahap berikutnya
+1. Analisis perubahan adegan dan motion signatures.
+2. Style Mixer dan preset schema versi.
+3. Pencocokan narasi → visual yang lebih baik.
+4. Timeline dan footage/image layers.
+5. Audio, subtitle, dan MP4 muxing/encoding lokal yang teruji di Chrome Android.

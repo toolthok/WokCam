@@ -1,0 +1,9 @@
+{
+  "name": "Auto Explainer Studio",
+  "short_name": "AutoExplainer",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#10151e",
+  "theme_color": "#111722",
+  "description": "Local-first visual explainer video maker"
+}
