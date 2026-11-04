@@ -1,0 +1,66 @@
+
+{
+  "id": "minimalist-3d-editorial",
+  "name": "Minimalist 3D Editorial Motion",
+  "version": "1.0.0",
+  "description": "Gaya explainer minimalis dengan tipografi editorial, kartu mengambang, dan komposisi 2.5D.",
+  "visual": {
+    "background": "#F7F7F5",
+    "grid": true,
+    "gridSize": 36,
+    "textColor": "#171717",
+    "secondaryColor": "#777A76",
+    "accentColors": [
+      "#A7C9B5",
+      "#B7C8E5",
+      "#E9DCCB",
+      "#DCE9E1"
+    ],
+    "fontFamily": "Arial, sans-serif",
+    "headlineWeight": 800,
+    "bodyWeight": 400
+  },
+  "composition": {
+    "negativeSpace": true,
+    "headlineScale": "large",
+    "cardRadius": 18,
+    "softShadow": true,
+    "preferredLayout": [
+      "editorial",
+      "centered",
+      "asymmetric",
+      "floating-cards"
+    ]
+  },
+  "motion": {
+    "entrance": [
+      "fade",
+      "slide",
+      "scale",
+      "pop"
+    ],
+    "ambient": [
+      "float",
+      "slow-zoom",
+      "rotate"
+    ],
+    "exit": [
+      "fade"
+    ],
+    "typicalSceneDuration": {
+      "min": 2,
+      "max": 5
+    },
+    "staggerInterval": 0.25
+  },
+  "elements": [
+    "kinetic-typography",
+    "floating-card",
+    "statistics",
+    "infographic",
+    "document-mockup",
+    "image-collage",
+    "screenshot",
+    "minimal-3d-object"
+  ]
+}

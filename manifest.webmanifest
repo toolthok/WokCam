@@ -1,9 +1,13 @@
+
 {
   "name": "Auto Explainer Studio",
-  "short_name": "AutoExplainer",
+  "short_name": "Auto Explainer",
+  "description": "Local-first explainer video maker",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#10151e",
-  "theme_color": "#111722",
-  "description": "Local-first visual explainer video maker"
+  "orientation": "any",
+  "background_color": "#f7f7f5",
+  "theme_color": "#f7f7f5",
+  "icons": []
 }
