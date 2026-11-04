@@ -1,13 +1,12 @@
-
 {
-  "name": "Auto Explainer Studio",
-  "short_name": "Auto Explainer",
+  "name": "WokCam",
+  "short_name": "WokCam",
   "description": "Local-first explainer video maker",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#f7f7f5",
-  "theme_color": "#f7f7f5",
+  "theme_color": "#15181e",
   "icons": []
 }

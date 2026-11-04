@@ -1,107 +1,26 @@
+# WokCam v0.5 documentation
 
-# Auto Explainer Studio
+## Architecture
+Static PWA; browser-side processing; local project persistence; GitHub optional for preset synchronization.
 
-Versi: 0.3.0  
-Tipe: Progressive Web App (PWA)  
-Rendering: Canvas 2D Preview  
-Penyimpanan: Browser Local Storage (versi awal)
+## Modules
+- `src/app.js`: main storyboard app.
+- `src/storyboard-engine.js`: scene data model.
+- `src/composition-engine.js`: canvas renderer.
+- `src/motion-engine.js`: motion calculations.
+- `src/reference-studio.js`: isolated reference video input, frame sampling, notes, local preset storage and GitHub sync.
 
-## 1. Deskripsi
+## Persistence
+- Storyboard project: `aes_v04_project` in localStorage.
+- Reference preset metadata: `wokcam_reference_presets_v1` in localStorage.
+- GitHub PAT: held in the password input only; not written by app code to storage.
+- Video/frame URLs are temporary object URLs. Source video is never uploaded automatically.
 
-Auto Explainer Studio adalah aplikasi untuk menyusun video explainer
-dan dokumenter pendek dengan pendekatan local-first.
+## Reference analysis
+The user chooses a clip and time range. Six evenly spaced timestamps are sought using the HTML video element. Canvas extracts JPEG previews. Notes capture composition, typography, palette, pacing, transitions and motion. This is manual analysis, not AI recognition.
 
-Tujuannya adalah mengubah naskah menjadi storyboard visual yang
-memiliki komposisi, tipografi, dan gerakan yang terstruktur.
+## GitHub sync
+Contents API file: `presets/reference-library.json`. Push reads current SHA before PUT; pull merges by preset ID. Token needs repository Contents permission.
 
-Aplikasi tidak memerlukan API AI berbayar.
-
-## 2. Fitur v0.3
-
-- Storyboard dengan banyak adegan.
-- Pengaturan durasi adegan.
-- Format vertikal 9:16 dan horizontal 16:9.
-- Canvas preview.
-- Animasi fade, slide, scale, dan pop.
-- Gerakan float, slow zoom, dan rotate.
-- Kartu informasi dan elemen teks.
-- Impor dan ekspor storyboard JSON.
-- Penyimpanan proyek di browser.
-- PWA dasar dengan cache offline.
-
-## 3. Instalasi GitHub Pages
-
-1. Buat repository GitHub.
-2. Unggah seluruh isi folder aplikasi.
-3. Buka Settings pada repository.
-4. Pilih Pages.
-5. Pilih Deploy from a branch.
-6. Pilih branch main dan folder root.
-7. Simpan pengaturan.
-8. Buka URL GitHub Pages setelah proses deployment selesai.
-
-Jangan membuka index.html langsung dari file manager.
-Gunakan GitHub Pages atau server lokal karena aplikasi
-menggunakan JavaScript ES Modules.
-
-## 4. Penggunaan
-
-1. Buka aplikasi.
-2. Pilih format vertikal atau horizontal.
-3. Pilih adegan dari daftar Storyboard.
-4. Edit judul, subjudul, dan durasi.
-5. Tambahkan kartu atau teks.
-6. Tekan Putar untuk melihat animasi.
-7. Simpan proyek.
-8. Ekspor storyboard sebagai JSON untuk cadangan.
-
-## 5. Struktur modul
-
-- motion-engine.js: menghitung keadaan animasi.
-- composition-engine.js: menggambar elemen ke Canvas.
-- storyboard-engine.js: mengelola adegan dan proyek.
-- app.js: menghubungkan mesin dengan antarmuka.
-
-## 6. Batasan versi ini
-
-Versi 0.3 adalah prototipe editor dan preview animasi.
-
-Belum tersedia:
-- Ekspor video WebM atau MP4.
-- Sinkronisasi narasi dan audio.
-- Subtitle otomatis.
-- Pemilihan footage otomatis.
-- Analisis gerakan video referensi.
-- Deteksi isi visual berbasis AI.
-- Sinkronisasi GitHub untuk preset.
-- Penyimpanan proyek berbasis IndexedDB.
-
-Canvas preview tidak sama dengan hasil render video final.
-
-## 7. Keamanan
-
-Jangan memasukkan token GitHub atau kredensial rahasia ke
-file proyek, preset, storyboard, maupun repository publik.
-
-## 8. Roadmap
-
-### v0.4
-- Pengaturan elemen visual lebih lengkap.
-- Preset dinamis.
-- Pengelolaan posisi dan ukuran.
-- IndexedDB.
-
-### v0.5
-- Timeline elemen.
-- Sinkronisasi audio dan narasi.
-- Asset manager.
-
-### v0.6
-- Local video rendering.
-- Ekspor WebM jika didukung browser.
-- Pengaturan resolusi dan frame rate.
-
-### v0.7
-- Reference analyzer.
-- Sistem style mixer.
-- Integrasi preset GitHub.
+## Known limitations
+No AI interpretation, no final video renderer, and no v6 ASR integration in this build. Codec compatibility depends on Android Chrome.

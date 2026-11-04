@@ -1,40 +1,29 @@
-# Auto Explainer Studio v0.2
+# WokCam v0.5 — recovery build
 
-## Fitur saat ini
-- PWA dasar dan cache offline.
-- Bank preset lokal menggunakan IndexedDB.
-- Impor/ekspor bank preset JSON.
-- Ambil 6 sampel frame dari video referensi lokal.
-- Catatan analisis gaya dan simpan sebagai preset.
-- Storyboard awal dari paragraf narasi.
-- Preview animasi Canvas 2D.
-- Ekspor lokal WebM menggunakan MediaRecorder jika didukung browser.
-- Sinkronisasi GitHub Contents API ke `presets/library.json`.
+Tablet-first, local-first storyboard and motion preview. This build restores the dark application UI while keeping the light minimalist video canvas preset, and adds a separate reference-video workspace.
 
-## Deploy
-1. Buat repository GitHub baru, misalnya `auto-explainer-studio`.
-2. Upload seluruh file ini ke root repository.
-3. Settings → Pages → Deploy from a branch → `main` / root.
-4. Buka URL GitHub Pages dari Chrome Android.
-5. Menu Chrome → Add to Home screen / Install app.
+## Available
+- Storyboard scenes, duration and scene properties.
+- Text, card and circle elements with entrance/continuous motion controls.
+- Canvas preview, playback speed, timeline, local save and JSON import/export.
+- Separate reference video upload (not production footage).
+- Six evenly sampled frames within a selected time range.
+- Manual visual-DNA notes, local preset library and JSON export.
+- Optional GitHub Contents API sync for `presets/reference-library.json`; token is not persisted.
 
-## Sinkronisasi preset
-Buat fine-grained personal access token:
-- Repository access: Only select repositories → repository preset khusus.
-- Repository permissions: Contents = Read and write.
-- Metadata read-only otomatis.
-Masukkan username, repository, dan token di tab GitHub. Token hanya berada di memori halaman; jangan simpan di localStorage dan jangan membagikannya. Untuk keamanan lebih tinggi, gunakan repository terpisah khusus preset, bukan repository kode utama.
+## Run
+Host on GitHub Pages or another static HTTPS host. `file://` is not supported for ES modules/service workers.
 
-## Batasan yang diketahui
-- Analisis referensi saat ini mengekstrak enam sampel frame; belum mendeteksi gerakan secara otomatis atau memahami semantik video.
-- Catatan analisis gaya masih dibantu ChatGPT secara manual.
-- Renderer awal hanya membuat grafis Canvas dan merekam WebM; belum menyatukan footage asli, audio narasi, musik, subtitle otomatis, atau MP4.
-- Performa rendering bergantung pada browser, memori, suhu, dan mode hemat daya Android.
-- Sinkronisasi GitHub memerlukan internet dan token dengan izin yang sesuai.
+## Tablet flow
+Choose a reference clip → set start/end → capture six frames → write observations → save/export preset → build storyboard scenes.
 
-## Tahap berikutnya
-1. Analisis perubahan adegan dan motion signatures.
-2. Style Mixer dan preset schema versi.
-3. Pencocokan narasi → visual yang lebih baik.
-4. Timeline dan footage/image layers.
-5. Audio, subtitle, dan MP4 muxing/encoding lokal yang teruji di Chrome Android.
+## GitHub
+Use a fine-grained token scoped to the target repository with Contents read/write permission. Enter token only in the password field. Never share it in chat or commit it.
+
+## Limitations
+- Frame sampling depends on browser codec support; MP4/H.264 is the safest input.
+- Six frames are samples only; no automatic AI visual interpretation.
+- Presets store notes and timestamps, not video or frame image blobs.
+- GitHub sync needs network and suitable token permission.
+- This build is still a storyboard/motion preview; final MP4/WebM rendering is not implemented.
+- v6 voice-over transcription/timestamp pipeline is not yet integrated into this v0.4-based editor.

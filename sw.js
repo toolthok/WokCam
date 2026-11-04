@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "auto-explainer-studio-v04";
+const CACHE_NAME = "wokcam-v05-dark-reference";
 
 const APP_FILES = [
   "./",
@@ -7,6 +7,7 @@ const APP_FILES = [
   "./manifest.webmanifest",
   "./src/styles.css",
   "./src/app.js",
+  "./src/reference-studio.js",
   "./src/motion-engine.js",
   "./src/composition-engine.js",
   "./src/storyboard-engine.js",

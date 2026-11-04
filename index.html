@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f7f7f5">
+  <meta name="theme-color" content="#15181e">
   <meta name="description" content="Auto Explainer Studio - local-first explainer video maker">
   <title>Auto Explainer Studio</title>
   <link rel="manifest" href="./manifest.webmanifest">
@@ -16,7 +16,7 @@
       <div class="brand-mark">A</div>
       <div>
         <strong>Auto Explainer Studio</strong>
-        <small>Local-first video maker · v0.3</small>
+        <small>Local-first video maker · v0.5</small>
       </div>
     </div>
     <div class="top-actions">
@@ -52,6 +52,30 @@
         </button>
       </section>
 
+
+      <section class="panel reference-panel">
+        <h2>Analisis video referensi</h2>
+        <p class="muted">Video referensi terpisah dari footage produksi. Ambil enam frame contoh, pilih rentang, lalu catat DNA visual.</p>
+        <label class="button secondary full file-label">Pilih video referensi<input id="referenceVideoInput" type="file" accept="video/*" hidden></label>
+        <video id="referenceVideo" class="ref-preview" controls playsinline hidden></video>
+        <div class="ref-meta"><div><label for="referenceStart">Mulai (detik)</label><input id="referenceStart" type="number" min="0" step="0.1" value="0"></div><div><label for="referenceEnd">Selesai (detik)</label><input id="referenceEnd" type="number" min="0" step="0.1" value="10"></div></div>
+        <div class="ref-actions"><button id="captureReferenceBtn" class="button primary" disabled>Ambil 6 frame</button><button id="clearReferenceBtn" class="button secondary danger">Bersihkan</button></div>
+        <div id="referenceFrames" class="ref-grid"></div>
+        <label for="referenceNotes">Catatan visual / DNA gaya</label><textarea id="referenceNotes" class="ref-note" placeholder="Komposisi, tipografi, warna, ritme cut, transisi, animasi..."></textarea>
+        <div class="ref-actions"><button id="saveReferencePresetBtn" class="button secondary">Simpan preset</button><button id="exportReferencePresetBtn" class="button secondary">Ekspor JSON</button></div>
+        <label for="referencePresetSelect">Preset tersimpan</label><select id="referencePresetSelect"><option value="">Belum ada preset</option></select>
+        <div class="ref-actions"><button id="loadReferencePresetBtn" class="button secondary">Muat</button><button id="deleteReferencePresetBtn" class="button secondary danger">Hapus</button></div>
+        <div class="ref-status" id="referenceStatus">Belum ada video referensi.</div>
+      </section>
+      <section class="panel reference-panel">
+        <h2>Sinkronisasi GitHub preset</h2><p class="muted">Token hanya berada di halaman aktif dan tidak disimpan ke localStorage.</p>
+        <label for="githubUser">Username GitHub</label><input id="githubUser" autocomplete="username" placeholder="username">
+        <label for="githubRepo">Repository</label><input id="githubRepo" value="WokCam">
+        <label for="githubBranch">Branch</label><input id="githubBranch" value="main">
+        <label for="githubToken">Personal Access Token</label><input id="githubToken" type="password" autocomplete="off" placeholder="Token dengan izin Contents">
+        <div class="ref-actions"><button id="githubPushBtn" class="button secondary">Kirim preset</button><button id="githubPullBtn" class="button secondary">Ambil preset</button></div>
+        <div class="ref-status" id="githubStatus">Token tidak disimpan. Sinkronisasi memerlukan izin Contents.</div>
+      </section>
       <section class="panel">
         <h2>Kontrol animasi</h2>
         <label for="speedRange">Kecepatan preview</label>
@@ -213,7 +237,7 @@
   </main>
 
   <footer>
-    Auto Explainer Studio · v0.3 · Preview lokal · Belum mengekspor video
+    Auto Explainer Studio · v0.5 · Preview lokal · Belum mengekspor video
   </footer>
 
   <script type="module" src="./src/app.js"></script>

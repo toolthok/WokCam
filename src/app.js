@@ -1,3 +1,4 @@
+import { initReferenceStudio } from "./reference-studio.js";
 
 import { CompositionEngine } from "./composition-engine.js";
 import { StoryboardEngine } from "./storyboard-engine.js";
@@ -563,6 +564,7 @@ $("importProjectInput").addEventListener("change", async event => {
 });
 
 async function initialize() {
+  initReferenceStudio();
   await loadPreset();
   loadProject();
 
