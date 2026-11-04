@@ -1,13 +1,20 @@
 
-import { Motion } from "./motion-engine.js";
+import { MotionEngine } from "./motion-engine.js";
 
 export class CompositionEngine {
   constructor(canvas) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext("2d");
+    this.ctx = canvas.getContext("2d", {
+      alpha: false
+    });
+
+    this.format = "vertical";
+    this.preset = {};
   }
 
   setFormat(format) {
+    this.format = format;
+
     if (format === "horizontal") {
       this.canvas.width = 1280;
       this.canvas.height = 720;
@@ -17,235 +24,323 @@ export class CompositionEngine {
     }
   }
 
-  drawBackground(style = {}) {
+  setPreset(preset) {
+    this.preset = preset || {};
+  }
+
+  getSize(value, reference) {
+    return (Number(value) || 0) / 1000 * reference;
+  }
+
+  roundRect(x, y, w, h, radius) {
+    const ctx = this.ctx;
+    const r = Math.min(radius, w / 2, h / 2);
+
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  drawGrid() {
     const ctx = this.ctx;
     const w = this.canvas.width;
     const h = this.canvas.height;
+    const visual = this.preset.visual || {};
 
-    ctx.fillStyle = style.background || "#F7F7F5";
-    ctx.fillRect(0, 0, w, h);
+    if (visual.grid === false) return;
 
-    if (style.grid !== false) {
-      ctx.save();
-      ctx.strokeStyle = "rgba(20,20,20,0.035)";
-      ctx.lineWidth = 1;
-
-      const gap = style.gridSize || 36;
-
-      for (let x = 0; x < w; x += gap) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
-
-      for (let y = 0; y < h; y += gap) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
-
-      ctx.restore();
-    }
-  }
-
-  drawText(text, x, y, options = {}) {
-    const ctx = this.ctx;
+    const gap = Math.max(12, Number(visual.gridSize) || 36);
 
     ctx.save();
-    ctx.fillStyle = options.color || "#171717";
-    ctx.font = `${options.weight || 700} ${
-      options.size || 42
-    }px ${options.font || "Arial, sans-serif"}`;
-    ctx.textAlign = options.align || "left";
-    ctx.textBaseline = "middle";
+    ctx.strokeStyle = visual.gridColor || "rgba(20,20,20,0.035)";
+    ctx.lineWidth = 1;
 
-    const maxWidth = options.maxWidth || 0;
-    const lineHeight = options.lineHeight || (options.size || 42) * 1.18;
+    for (let x = 0; x <= w; x += gap) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
 
-    if (!maxWidth) {
-      ctx.fillText(String(text || ""), x, y);
-    } else {
-      const words = String(text || "").split(/\s+/);
-      let line = "";
-      let lineNumber = 0;
-
-      for (const word of words) {
-        const test = line ? line + " " + word : word;
-
-        if (ctx.measureText(test).width > maxWidth && line) {
-          ctx.fillText(line, x, y + lineNumber * lineHeight);
-          line = word;
-          lineNumber++;
-        } else {
-          line = test;
-        }
-      }
-
-      if (line) {
-        ctx.fillText(line, x, y + lineNumber * lineHeight);
-      }
+    for (let y = 0; y <= h; y += gap) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
     }
 
     ctx.restore();
   }
 
-  drawCard(element, x, y, scale) {
+  drawBackground() {
     const ctx = this.ctx;
-    const w = element.width || 300;
-    const h = element.height || 180;
+    const visual = this.preset.visual || {};
+
+    ctx.fillStyle = visual.background || "#F7F7F5";
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.drawGrid();
+  }
+
+  wrapText(text, maxWidth, font) {
+    const ctx = this.ctx;
+    ctx.font = font;
+
+    const words = String(text || "").split(/\s+/);
+    const lines = [];
+    let line = "";
+
+    for (const word of words) {
+      const test = line ? line + " " + word : word;
+
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  drawText(element, x, y, w) {
+    const ctx = this.ctx;
+    const visual = this.preset.visual || {};
+
+    const size = Math.max(
+      8,
+      this.getSize(element.size || 55, this.canvas.width)
+    );
+
+    const weight = element.weight || 700;
+    const font = `${weight} ${size}px ${visual.fontFamily || "Arial, sans-serif"}`;
+
+    const color = element.color ||
+      visual.textColor || "#171717";
+
+    const maxWidth = Math.max(
+      20,
+      this.getSize(element.width || 780, this.canvas.width)
+    );
+
+    const lineHeight = size * (Number(element.lineHeight) || 1.18);
 
     ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(scale, scale);
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.textBaseline = "top";
 
-    ctx.shadowColor = "rgba(0,0,0,0.12)";
-    ctx.shadowBlur = 22;
-    ctx.shadowOffsetY = 10;
+    const lines = this.wrapText(element.text, maxWidth, font);
 
-    ctx.fillStyle = element.color || "#FFFFFF";
-    this.roundRect(-w / 2, -h / 2, w, h, 18);
+    if (element.align === "center") {
+      ctx.textAlign = "center";
+    } else if (element.align === "right") {
+      ctx.textAlign = "right";
+    } else {
+      ctx.textAlign = "left";
+    }
+
+    lines.forEach((line, index) => {
+      ctx.fillText(line, x, y + index * lineHeight);
+    });
+
+    ctx.restore();
+  }
+
+  drawCard(element, x, y, w, h) {
+    const ctx = this.ctx;
+    const visual = this.preset.visual || {};
+
+    const radius = Number(element.radius) || 18;
+    const color = element.color || "#FFFFFF";
+
+    ctx.save();
+
+    if (element.shadow !== false) {
+      ctx.shadowColor = "rgba(0,0,0,0.13)";
+      ctx.shadowBlur = 22;
+      ctx.shadowOffsetY = 9;
+    }
+
+    ctx.fillStyle = color;
+    this.roundRect(x - w / 2, y - h / 2, w, h, radius);
     ctx.fill();
 
     ctx.shadowColor = "transparent";
 
     if (element.accent) {
       ctx.fillStyle = element.accent;
-      this.roundRect(-w / 2 + 18, -h / 2 + 18, 8, h - 36, 4);
+      this.roundRect(
+        x - w / 2 + 16,
+        y - h / 2 + 16,
+        7,
+        h - 32,
+        4
+      );
       ctx.fill();
     }
 
-    ctx.restore();
-
     if (element.label) {
-      this.drawText(
+      const textSize = Math.max(12, w * 0.075);
+
+      ctx.fillStyle = element.textColor || "#202020";
+      ctx.font = `700 ${textSize}px Arial`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const maxWidth = w - 48;
+      const lines = this.wrapText(
         element.label,
-        x,
-        y,
-        {
-          size: element.textSize || 25,
-          weight: 700,
-          align: "center",
-          maxWidth: w - 45
-        }
+        maxWidth,
+        ctx.font
       );
+
+      const lineHeight = textSize * 1.2;
+      const totalHeight = lines.length * lineHeight;
+
+      lines.forEach((line, i) => {
+        ctx.fillText(
+          line,
+          x,
+          y - totalHeight / 2 + i * lineHeight
+        );
+      });
     }
+
+    ctx.restore();
   }
 
-  drawCircle(element, x, y, scale) {
+  drawCircle(element, x, y, w) {
     const ctx = this.ctx;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(scale, scale);
+    const radius = this.getSize(
+      element.radius || 100,
+      this.canvas.width
+    );
 
-    ctx.fillStyle = element.color || "#D8E4DD";
+    ctx.save();
+    ctx.fillStyle = element.color || "#DCE9E1";
     ctx.beginPath();
-    ctx.arc(0, 0, element.radius || 65, 0, Math.PI * 2);
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
 
+    if (element.stroke) {
+      ctx.strokeStyle = element.stroke;
+      ctx.lineWidth = Number(element.strokeWidth) || 2;
+      ctx.stroke();
+    }
+
     ctx.restore();
   }
 
-  roundRect(x, y, width, height, radius) {
-    const ctx = this.ctx;
-    const r = Math.min(radius, width / 2, height / 2);
-
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + width, y, x + width, y + height, r);
-    ctx.arcTo(x + width, y + height, x, y + height, r);
-    ctx.arcTo(x, y + height, x, y, r);
-    ctx.arcTo(x, y, x + width, y, r);
-    ctx.closePath();
-  }
-
-  render(scene, sceneTime = 0, preset = {}) {
+  drawElement(element, time) {
     const ctx = this.ctx;
     const w = this.canvas.width;
     const h = this.canvas.height;
 
-    this.drawBackground(preset);
+    const state = MotionEngine.getState(element, time);
+    if (state.opacity <= 0) return;
 
-    const margin = w * 0.11;
-    const centerX = w / 2;
+    const x = this.getSize(element.x ?? 500, w) + state.offsetX;
+    const y = this.getSize(element.y ?? 500, h) + state.offsetY;
 
-    const elements = [...(scene.elements || [])];
+    const elementWidth = this.getSize(element.width || 700, w);
+    const elementHeight = this.getSize(element.height || 180, h);
 
-    if (scene.title) {
-      elements.unshift({
-        id: "generated-title",
+    ctx.save();
+    ctx.globalAlpha = state.opacity;
+
+    // Transform diterapkan sekali, relatif terhadap titik pusat elemen.
+    ctx.translate(x, y);
+    ctx.rotate(state.rotation);
+    ctx.scale(state.scale, state.scale);
+
+    if (element.type === "text") {
+      this.drawText(element, -elementWidth / 2, -elementHeight / 2, elementWidth);
+    } else if (element.type === "card") {
+      this.drawCard(
+        element,
+        0,
+        0,
+        elementWidth,
+        elementHeight
+      );
+    } else if (element.type === "circle") {
+      this.drawCircle(element, 0, 0, w);
+    }
+
+    ctx.restore();
+  }
+
+  render(scene, time = 0) {
+    this.drawBackground();
+
+    const elements = Array.isArray(scene.elements)
+      ? [...scene.elements]
+      : [];
+
+    // Judul dan subjudul otomatis hanya jika belum ada elemen
+    // khusus yang ditandai sebagai title/subtitle.
+    const hasTitle = elements.some(e => e.role === "title");
+    const hasSubtitle = elements.some(e => e.role === "subtitle");
+
+    if (scene.title && !hasTitle) {
+      elements.push({
+        id: "auto-title",
+        role: "title",
         type: "text",
         text: scene.title,
-        x: margin,
-        y: h * 0.27,
-        size: w * 0.095,
+        x: 500,
+        y: 260,
+        width: 790,
+        height: 260,
+        size: 92,
         weight: 800,
-        width: w - margin * 2,
-        duration: scene.duration || 5,
-        entrance: "slide",
-        start: 0
+        entrance: "slide-up",
+        start: 0,
+        duration: scene.duration,
+        exitDuration: 0.3
       });
     }
 
-    if (scene.subtitle) {
-      elements.unshift({
-        id: "generated-subtitle",
+    if (scene.subtitle && !hasSubtitle) {
+      elements.push({
+        id: "auto-subtitle",
+        role: "subtitle",
         type: "text",
         text: scene.subtitle,
-        x: margin,
-        y: h * 0.40,
-        size: w * 0.042,
+        x: 500,
+        y: 410,
+        width: 770,
+        height: 220,
+        size: 42,
         weight: 400,
-        width: w - margin * 2,
-        duration: scene.duration || 5,
         entrance: "fade",
-        start: 0.35
+        start: 0.35,
+        duration: scene.duration,
+        exitDuration: 0.3
       });
     }
 
-    for (const element of elements) {
-      const state = Motion.getState(element, sceneTime);
-      if (state.opacity <= 0) continue;
+    // Urutan array menentukan urutan lapisan:
+    // elemen terakhir digambar paling depan.
+    elements.forEach(element => this.drawElement(element, time));
 
-      const x = element.x ?? centerX;
-      const y = element.y ?? h * 0.65;
+    const margin = w * 0.07;
 
-      ctx.save();
-      ctx.globalAlpha = state.opacity;
-      ctx.translate(state.x, state.y);
-      ctx.translate(x, y);
-      ctx.rotate(state.rotation);
-      ctx.scale(state.scale, state.scale);
-      ctx.translate(-x, -y);
-
-      if (element.type === "text") {
-        this.drawText(
-          element.text,
-          x,
-          y,
-          {
-            size: element.size || 36,
-            weight: element.weight || 700,
-            color: element.color || "#171717",
-            maxWidth: element.width || w * 0.78,
-            lineHeight: element.lineHeight
-          }
-        );
-      } else if (element.type === "card") {
-        this.drawCard(element, x, y, 1);
-      } else if (element.type === "circle") {
-        this.drawCircle(element, x, y, 1);
-      }
-
-      ctx.restore();
-    }
-
-    // Penanda adegan kecil
-    ctx.save();
-    ctx.fillStyle = "rgba(20,20,20,0.35)";
-    ctx.font = "12px Arial";
-    ctx.fillText("AUTO EXPLAINER STUDIO", margin, h - 25);
-    ctx.restore();
+    this.ctx.save();
+    this.ctx.fillStyle = "rgba(20,20,20,0.35)";
+    this.ctx.font = "11px Arial";
+    this.ctx.fillText(
+      "AUTO EXPLAINER STUDIO",
+      margin,
+      h - 18
+    );
+    this.ctx.restore();
   }
 }

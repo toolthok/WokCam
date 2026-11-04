@@ -307,3 +307,51 @@ footer {
     flex-direction: column;
   }
 }
+
+
+.element-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.element-actions .button {
+  padding: 7px 4px;
+  font-size: 12px;
+}
+
+.element-item.active {
+  border-color: #222;
+  background: #efefeb;
+}
+
+#elementInspector[hidden],
+#emptyInspector[hidden] {
+  display: none;
+}
+
+#elementInspector input,
+#elementInspector select,
+#elementInspector textarea {
+  min-height: 38px;
+}
+
+#elementInspector input[type="color"] {
+  padding: 3px;
+  height: 42px;
+}
+
+#elementInspector .muted {
+  line-height: 1.6;
+}
+
+@media (max-width: 650px) {
+  .element-actions {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .inspector {
+    grid-template-columns: 1fr;
+  }
+}

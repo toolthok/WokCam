@@ -1,105 +1,143 @@
 
-export const Motion = {
-  clamp(value, min = 0, max = 1) {
-    return Math.max(min, Math.min(max, value));
-  },
+export class MotionEngine {
+  static clamp(v, min = 0, max = 1) {
+    return Math.max(min, Math.min(max, v));
+  }
 
-  easeOutCubic(t) {
-    return 1 - Math.pow(1 - t, 3);
-  },
+  static ease(name, t) {
+    t = this.clamp(t);
 
-  easeInOut(t) {
-    return t < 0.5
-      ? 4 * t * t * t
-      : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  },
+    switch (name) {
+      case "ease-in":
+        return t * t * t;
 
-  easeOutBack(t) {
-    const c1 = 1.70158;
-    const c3 = c1 + 1;
-    return 1 + c3 * Math.pow(t - 1, 3)
-      + c1 * Math.pow(t - 1, 2);
-  },
+      case "ease-out":
+        return 1 - Math.pow(1 - t, 3);
 
-  interpolate(from, to, t) {
-    return from + (to - from) * t;
-  },
+      case "ease-in-out":
+        return t < 0.5
+          ? 4 * t * t * t
+          : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-  evaluate(type, progress) {
-    const t = this.clamp(progress);
+      case "back":
+        return 1 + 2.70158 * Math.pow(t - 1, 3)
+          + 1.70158 * Math.pow(t - 1, 2);
 
-    switch (type) {
-      case "fade":
-      case "slide":
-      case "scale":
-        return this.easeOutCubic(t);
-      case "pop":
-        return this.easeOutBack(t);
-      case "smooth":
-        return this.easeInOut(t);
+      case "linear":
       default:
         return t;
     }
-  },
+  }
 
-  getState(element, sceneTime) {
-    const start = element.start ?? 0;
-    const duration = Math.max(0.1, element.duration ?? 1);
+  static getState(element, time) {
+    const start = Math.max(0, Number(element.start) || 0);
+    const duration = Math.max(0.1, Number(element.duration) || 1);
     const end = start + duration;
-    const entrance = Math.max(0.1, element.entranceDuration ?? 0.65);
-    const exit = Math.max(0, element.exitDuration ?? 0.4);
 
-    let opacity = 1;
-    let x = 0;
-    let y = 0;
+    const enterDuration = Math.max(
+      0.05,
+      Number(element.entranceDuration) || 0.65
+    );
+
+    const exitDuration = Math.min(
+      duration,
+      Math.max(0, Number(element.exitDuration) || 0.4)
+    );
+
+    const entrance = element.entrance || "fade";
+    const easing = element.easing || "ease-out";
+
+    let opacity = 0;
     let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
     let rotation = 0;
 
-    if (sceneTime < start) {
-      opacity = 0;
-    } else {
-      const p = this.evaluate(
-        element.entrance || "fade",
-        (sceneTime - start) / entrance
+    if (time < start || time > end) {
+      return { opacity, scale, offsetX, offsetY, rotation };
+    }
+
+    const enterProgress = this.ease(
+      easing,
+      (time - start) / enterDuration
+    );
+
+    switch (entrance) {
+      case "slide-left":
+        offsetX = 90 * (1 - enterProgress);
+        opacity = enterProgress;
+        break;
+
+      case "slide-right":
+        offsetX = -90 * (1 - enterProgress);
+        opacity = enterProgress;
+        break;
+
+      case "slide-up":
+        offsetY = 90 * (1 - enterProgress);
+        opacity = enterProgress;
+        break;
+
+      case "slide-down":
+        offsetY = -90 * (1 - enterProgress);
+        opacity = enterProgress;
+        break;
+
+      case "scale":
+        scale = 0.65 + 0.35 * enterProgress;
+        opacity = enterProgress;
+        break;
+
+      case "pop":
+        scale = this.ease("back", (time - start) / enterDuration);
+        opacity = enterProgress;
+        break;
+
+      case "none":
+        opacity = 1;
+        break;
+
+      case "fade":
+      default:
+        opacity = enterProgress;
+    }
+
+    if (exitDuration > 0 && time > end - exitDuration) {
+      const exitProgress = this.ease(
+        "ease-in",
+        (time - (end - exitDuration)) / exitDuration
       );
 
-      if (element.entrance === "slide") {
-        const distance = element.slideDistance ?? 70;
-        x = distance * (1 - p);
-      }
-
-      if (element.entrance === "scale" ||
-          element.entrance === "pop") {
-        scale = this.interpolate(0.72, 1, p);
-      }
-
-      opacity = p;
+      opacity *= 1 - exitProgress;
     }
 
-    if (sceneTime > end - exit && exit > 0) {
-      const p = this.clamp((sceneTime - (end - exit)) / exit);
-      opacity *= 1 - this.easeOutCubic(p);
-    }
+    const elapsed = Math.max(0, time - start);
 
-    if (sceneTime > end) opacity = 0;
+    if (element.motion === "float" || element.float === true) {
+      const amplitude = Number(element.floatAmplitude) || 8;
+      const frequency = Number(element.floatFrequency) || 1.2;
 
-    const float = element.float || false;
-    if (float && opacity > 0) {
-      const amplitude = element.floatAmplitude ?? 8;
-      const frequency = element.floatFrequency ?? 1.4;
-      y += Math.sin(sceneTime * frequency * Math.PI * 2)
+      offsetY += Math.sin(elapsed * frequency * Math.PI * 2)
         * amplitude;
     }
 
     if (element.motion === "slow-zoom") {
-      const p = this.clamp((sceneTime - start) / duration);
-      scale *= 1 + p * (element.zoomAmount ?? 0.08);
+      const progress = this.clamp(elapsed / duration);
+      scale *= 1 + progress * (Number(element.zoomAmount) || 0.08);
     }
 
     if (element.motion === "rotate") {
-      rotation = Math.sin(sceneTime * 1.3) * 0.035;
+      rotation += Math.sin(elapsed * 1.4) * 0.035;
     }
 
-    return { opacity, x, y, scale, rotation };
+    rotation += (Number(element.rotation) || 0) * Math.PI / 180;
+
+    return {
+      opacity: this.clamp(opacity),
+      scale,
+      offsetX,
+      offsetY,
+      rotation
+    };
   }
-};
+}

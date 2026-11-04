@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "auto-explainer-studio-v03";
+const CACHE_NAME = "auto-explainer-studio-v04";
 
 const APP_FILES = [
   "./",
@@ -10,7 +10,10 @@ const APP_FILES = [
   "./src/motion-engine.js",
   "./src/composition-engine.js",
   "./src/storyboard-engine.js",
-  "./presets/minimalist-3d-editorial.json"
+  "./presets/minimalist-3d-editorial.json",
+  "./docs/README.md",
+  "./docs/V04-ADVANCED-COMPOSITION.md",
+  "./docs/STORYBOARD-SCHEMA.md"
 ];
 
 self.addEventListener("install", event => {
@@ -39,7 +42,6 @@ self.addEventListener("fetch", event => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(

@@ -95,33 +95,108 @@
     </section>
 
     <aside class="inspector">
-      <section class="panel">
-        <h2>Properti adegan</h2>
-        <label for="sceneTitle">Judul</label>
-        <input id="sceneTitle" placeholder="Judul adegan">
 
-        <label for="sceneSubtitle">Subjudul</label>
-        <textarea id="sceneSubtitle" rows="3"
-          placeholder="Penjelasan singkat"></textarea>
 
-        <label for="sceneDuration">Durasi (detik)</label>
-        <input id="sceneDuration" type="number" min="1" max="30" value="5">
+<section class="panel">
+  <h2>Properti adegan</h2>
 
-        <button id="applySceneBtn" class="button primary full">
-          Terapkan perubahan
-        </button>
-      </section>
+  <label for="sceneTitle">Judul adegan</label>
+  <input id="sceneTitle">
 
-      <section class="panel">
-        <h2>Elemen visual</h2>
-        <button id="addCardBtn" class="button secondary full">
-          + Kartu visual
-        </button>
-        <button id="addTextBtn" class="button secondary full">
-          + Teks tambahan
-        </button>
-        <div id="elementList" class="element-list"></div>
-      </section>
+  <label for="sceneSubtitle">Subjudul</label>
+  <textarea id="sceneSubtitle" rows="3"></textarea>
+
+  <label for="sceneDuration">Durasi adegan (detik)</label>
+  <input id="sceneDuration" type="number" min="1" max="30" value="5">
+
+  <button id="applySceneBtn" class="button primary full">
+    Terapkan adegan
+  </button>
+</section>
+
+<section class="panel">
+  <h2>Elemen visual</h2>
+
+  <div class="element-actions">
+    <button id="addCardBtn" class="button secondary">+ Kartu</button>
+    <button id="addTextBtn" class="button secondary">+ Teks</button>
+    <button id="addCircleBtn" class="button secondary">+ Lingkaran</button>
+  </div>
+
+  <div id="elementList" class="element-list"></div>
+</section>
+
+<section class="panel">
+  <h2>Inspector elemen</h2>
+
+  <div id="emptyInspector" class="muted">
+    Pilih elemen pada daftar untuk mengedit propertinya.
+  </div>
+
+  <div id="elementInspector" hidden>
+    <label for="elementText">Isi teks / label</label>
+    <textarea id="elementText" rows="2"></textarea>
+
+    <label for="elementX">Posisi horizontal (0–1000)</label>
+    <input id="elementX" type="number" min="0" max="1000">
+
+    <label for="elementY">Posisi vertikal (0–1000)</label>
+    <input id="elementY" type="number" min="0" max="1000">
+
+    <label for="elementWidth">Lebar (0–1000)</label>
+    <input id="elementWidth" type="number" min="10" max="1000">
+
+    <label for="elementHeight">Tinggi (0–1000)</label>
+    <input id="elementHeight" type="number" min="10" max="1000">
+
+    <label for="elementSize">Ukuran teks (0–150)</label>
+    <input id="elementSize" type="number" min="8" max="150">
+
+    <label for="elementColor">Warna</label>
+    <input id="elementColor" type="color" value="#171717">
+
+    <label for="elementAccent">Warna aksen</label>
+    <input id="elementAccent" type="color" value="#A7C9B5">
+
+    <label for="elementStart">Waktu mulai (detik)</label>
+    <input id="elementStart" type="number" min="0" step="0.1">
+
+    <label for="elementDuration">Durasi tampil (detik)</label>
+    <input id="elementDuration" type="number" min="0.1" step="0.1">
+
+    <label for="elementEntrance">Animasi masuk</label>
+    <select id="elementEntrance">
+      <option value="fade">Fade</option>
+      <option value="slide-up">Slide Up</option>
+      <option value="slide-down">Slide Down</option>
+      <option value="slide-left">Slide Left</option>
+      <option value="slide-right">Slide Right</option>
+      <option value="scale">Scale</option>
+      <option value="pop">Pop</option>
+      <option value="none">Tanpa animasi</option>
+    </select>
+
+    <label for="elementMotion">Gerakan berkelanjutan</label>
+    <select id="elementMotion">
+      <option value="none">Tidak ada</option>
+      <option value="float">Floating</option>
+      <option value="slow-zoom">Slow Zoom</option>
+      <option value="rotate">Rotasi lembut</option>
+    </select>
+
+    <label for="elementRotation">Rotasi (derajat)</label>
+    <input id="elementRotation" type="number" min="-180" max="180">
+
+    <label for="elementExit">Durasi animasi keluar (detik)</label>
+    <input id="elementExit" type="number" min="0" step="0.1">
+
+    <button id="deleteElementBtn" class="button secondary full">
+      Hapus elemen terpilih
+    </button>
+  </div>
+</section>
+
+
 
       <section class="panel">
         <h2>Data proyek</h2>
