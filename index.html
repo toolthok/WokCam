@@ -1,124 +1,146 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111722"><link rel="manifest" href="manifest.webmanifest">
-<title>Auto Explainer Studio</title>
-<style>
-:root{--bg:#10151e;--panel:#1a2330;--line:#303c4d;--txt:#f3f6fb;--muted:#9eacbd;--mint:#79dfc4;--blue:#8cb8ff}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px system-ui,-apple-system,sans-serif}header{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}h1{font-size:19px;margin:0}h2{font-size:16px;margin:0 0 12px}h3{font-size:14px;margin:0 0 8px}.muted,small{color:var(--muted)}main{max-width:1180px;margin:auto;padding:14px;display:grid;grid-template-columns: minmax(280px,.9fr) minmax(300px,1.1fr);gap:14px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}.wide{grid-column:1/-1}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tab,button{border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:#263244;color:var(--txt);font-weight:650;cursor:pointer}.tab.active,button.primary{background:var(--mint);color:#10231e;border-color:var(--mint)}button:disabled{opacity:.45}input,textarea,select{width:100%;background:#0d131c;color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:10px;font:14px system-ui}textarea{min-height:190px;resize:vertical}.field{margin:9px 0}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.row button{flex:0 0 auto}.hidden{display:none!important}#preview{width:100%;max-width:650px;margin:8px auto;background:#0a0e14;aspect-ratio:9/16;border-radius:10px;border:1px solid var(--line);overflow:hidden}canvas{width:100%;height:100%;display:block}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px}.preset{border:1px solid var(--line);border-radius:10px;padding:10px;background:#131b26}.preset strong{display:block;margin-bottom:4px}.preset p{font-size:12px;color:var(--muted);min-height:32px}.status{font-size:12px;color:var(--muted);margin-top:8px;white-space:pre-wrap}.pill{font-size:11px;color:var(--mint);border:1px solid #386b60;border-radius:20px;padding:3px 8px}.scene{padding:8px;border:1px solid var(--line);border-radius:8px;margin:6px 0;font-size:13px}.scene.active{border-color:var(--mint)}.notice{padding:10px;background:#222e3c;border-radius:9px;color:#c7d5e5;font-size:12px;line-height:1.5}.meter{height:6px;background:#344254;border-radius:9px;overflow:hidden}.meter>div{height:100%;background:var(--mint);width:0%}@media(max-width:760px){main{grid-template-columns:1fr;padding:10px}.wide{grid-column:auto}}
-</style></head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f5">
+  <meta name="description" content="Auto Explainer Studio - local-first explainer video maker">
+  <title>Auto Explainer Studio</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./src/styles.css">
+</head>
 <body>
-<header><div><h1>Auto Explainer Studio</h1><small>v0.2 · Local-first PWA · Reference → Preset → Video</small></div><span class="pill" id="connection">Memeriksa penyimpanan…</span></header>
-<main>
-<section class="panel">
-<div class="tabs"><button class="tab active" data-tab="library">Bank Preset</button><button class="tab" data-tab="reference">Referensi</button><button class="tab" data-tab="project">Proyek</button><button class="tab" data-tab="github">GitHub</button></div>
-<div id="tab-library">
-<h2 style="margin-top:14px">Bank preset visual</h2><p class="muted">Preset tersimpan di tablet dan dapat disinkronkan ke repository GitHub milikmu.</p>
-<div id="presetList" class="cards"></div>
-<div class="row" style="margin-top:10px"><button class="primary" id="newPreset">+ Buat preset dari analisis</button><button id="exportPresets">Ekspor bank JSON</button></div>
-<div class="field"><label>Impor bank preset JSON</label><input type="file" id="importPresets" accept=".json,application/json"></div>
-<div id="libraryStatus" class="status"></div>
-</div>
-<div id="tab-reference" class="hidden">
-<h2 style="margin-top:14px">Analisis video referensi</h2>
-<div class="field"><label>Pilih video referensi (MP4/WebM)</label><input type="file" id="refVideo" accept="video/*"></div>
-<video id="refPlayer" controls playsinline class="hidden" style="width:100%;border-radius:9px;max-height:280px;background:#05070a"></video>
-<div class="row"><button id="extractFrames">Ambil sampel frame</button><button id="clearRef">Bersihkan</button></div>
-<div id="frames" class="cards" style="margin-top:10px"></div>
-<div class="field"><label>Nama preset</label><input id="refName" value="Preset dari referensi baru"></div>
-<div class="field"><label>Catatan gaya (isi hasil pengamatan / bantuan ChatGPT)</label><textarea id="refNotes" placeholder="Contoh: latar putih, teks bold, zoom-in cepat, kartu UI, cut tiap 2-4 detik, grafik minimalis..."></textarea></div>
-<div class="row"><button class="primary" id="saveRefPreset">Simpan sebagai preset</button></div>
-<div class="notice">Analisis otomatis tahap ini mengambil frame pada interval waktu untuk membantu pengamatan. Ia belum memahami semantik seluruh video atau mengenali semua keyframe secara otomatis. Gunakan catatan gaya untuk merumuskan resep yang bisa dipakai ulang.</div>
-<div id="refStatus" class="status"></div>
-</div>
-<div id="tab-project" class="hidden">
-<h2 style="margin-top:14px">Komposer video</h2>
-<div class="field"><label>Judul proyek</label><input id="projectTitle" value="Video penjelasan baru"></div>
-<div class="field"><label>Format</label><select id="format"><option value="9:16">Vertikal 9:16</option><option value="16:9">YouTube 16:9</option></select></div>
-<div class="field"><label>Preset visual</label><select id="projectPreset"></select></div>
-<div class="field"><label>Naskah / narasi (satu paragraf per adegan)</label><textarea id="script" placeholder="Masukkan narasi. Pisahkan adegan dengan baris kosong."></textarea></div>
-<div class="row"><button class="primary" id="makeScenes">Buat storyboard awal</button><button id="saveProject">Simpan proyek</button></div>
-<div id="sceneList"></div>
-<div class="row"><button id="prevScene">← Adegan</button><button id="nextScene">Adegan →</button><button class="primary" id="playPreview">▶ Preview animasi</button></div>
-<div id="preview"><canvas id="stage" width="720" height="1280"></canvas></div>
-<div class="row"><button class="primary" id="record">Rekam ekspor lokal</button><button id="stopRecord" disabled>Hentikan & unduh</button></div>
-<div class="meter"><div id="progress"></div></div><div id="renderStatus" class="status">Ekspor awal menggunakan MediaRecorder. Browser Android biasanya menghasilkan WebM; MP4 native belum dijanjikan.</div>
-</div>
-<div id="tab-github" class="hidden">
-<h2 style="margin-top:14px">Sinkronisasi GitHub</h2>
-<div class="notice">Gunakan fine-grained token dengan akses Contents: Read and write hanya pada satu repository khusus preset. Token hanya berada di memori tab ini dan tidak disimpan. Jangan gunakan token dengan akses seluruh akun.</div>
-<div class="field"><label>GitHub username / organisasi</label><input id="ghOwner" placeholder="username"></div>
-<div class="field"><label>Nama repository</label><input id="ghRepo" placeholder="auto-explainer-presets"></div>
-<div class="field"><label>Fine-grained Personal Access Token</label><input id="ghToken" type="password" autocomplete="off" placeholder="github_pat_..."></div>
-<div class="row"><button id="ghPull">Ambil preset dari GitHub</button><button class="primary" id="ghPush">Simpan bank ke GitHub</button></div>
-<div id="ghStatus" class="status">File pusat: presets/library.json</div>
-</div>
-</section>
-<section class="panel">
-<h2>Monitor visual</h2><p class="muted">Pratinjau gerak sederhana untuk menguji gaya dan komposisi.</p>
-<div id="bigPreview" style="width:100%;max-width:500px;margin:auto;aspect-ratio:9/16;background:#090d14;border-radius:10px;overflow:hidden"><canvas id="stage2" width="720" height="1280"></canvas></div>
-<div class="notice" style="margin-top:12px">Mesin awal: animasi Canvas 2D + MediaRecorder. Rendering berjalan di perangkat. Untuk proyek panjang, tutup tab lain dan pastikan tablet tidak masuk mode hemat daya.</div>
-<h3 style="margin-top:14px">Checklist kemampuan</h3>
-<div class="status">✓ Bank preset lokal<br>✓ Impor / ekspor JSON<br>✓ Sampel frame dari video referensi<br>✓ Storyboard dari paragraf narasi<br>✓ Animasi teks dan kartu<br>✓ Ekspor video lokal WebM (jika didukung browser)<br>○ Analisis gaya otomatis tingkat lanjut<br>○ Pencocokan visual semantik otomatis<br>○ Ekspor MP4 lintas perangkat</div>
-</section>
-<section class="panel wide">
-<h2>Struktur bank preset</h2><p class="muted">Preset adalah resep visual, bukan salinan konten video. Setiap preset menyimpan warna, tipografi, tempo, gerakan, transisi, dan tipe adegan yang disukai.</p>
-<pre style="white-space:pre-wrap;background:#0d131c;padding:12px;border-radius:9px;color:#c8d6e7;font-size:12px">{
-  "id": "minimal-tech",
-  "name": "Minimal Tech Explainer",
-  "description": "Kinetic typography, UI cards, clean background",
-  "palette": ["#f7f7f2", "#111827", "#59c9a8"],
-  "motion": ["slide-up", "zoom-in", "float"],
-  "beatSeconds": [2, 5],
-  "sceneTypes": ["title", "kinetic", "card", "stat", "footage"]
-}</pre>
-</section>
-</main>
-<script>
-const DB='aes_db', STORE='kv', KEY='presets';
-const seed=[
-{id:'minimal-tech',name:'Minimal Tech Explainer',description:'Teks kinetik, kartu UI, latar bersih, dan gerakan halus.',palette:['#f7f7f2','#111827','#59c9a8'],motion:['slide-up','zoom-in','float'],beatSeconds:[2,5],sceneTypes:['title','kinetic','card','stat','footage']},
-{id:'cinematic-doc',name:'Cinematic Documentary',description:'Footage dominan, judul sinematik, zoom lambat, dan atmosfer dramatis.',palette:['#111827','#f3ead7','#d6a85f'],motion:['slow-zoom','fade','pan'],beatSeconds:[3,6],sceneTypes:['footage','title','quote','stat']},
-{id:'edu-infographic',name:'Educational Infographic',description:'Diagram, angka, ikon, dan grafik yang mudah dibaca.',palette:['#f5f8ff','#14213d','#4385e8'],motion:['pop','slide-up','count'],beatSeconds:[2,4],sceneTypes:['title','stat','chart','card']},
-{id:'dynamic-social',name:'Dynamic Social Video',description:'Ritme cepat, teks besar, pergantian visual singkat.',palette:['#10131a','#ffffff','#ffca58'],motion:['pop','shake','slide-up'],beatSeconds:[1,3],sceneTypes:['kinetic','title','stat','card']}
-];
-let presets=seed.slice(),scenes=[],sceneIndex=0,refURL=null,framesData=[],anim=null,recorder=null,chunks=[];
-const $=id=>document.getElementById(id);
-function openDB(){return new Promise((res,rej)=>{let q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore(STORE);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
-async function dbGet(k){let d=await openDB();return new Promise((res,rej)=>{let t=d.transaction(STORE),q=t.objectStore(STORE).get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
-async function dbSet(k,v){let d=await openDB();return new Promise((res,rej)=>{let t=d.transaction(STORE,'readwrite');t.objectStore(STORE).put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
-async function persist(){await dbSet(KEY,presets);renderLibrary()}
-function renderLibrary(){$('presetList').innerHTML='';presets.forEach(p=>{let e=document.createElement('div');e.className='preset';e.innerHTML='<strong></strong><p></p><span class="pill"></span>';e.querySelector('strong').textContent=p.name;e.querySelector('p').textContent=p.description;e.querySelector('.pill').textContent=(p.sceneTypes||[]).join(' · ');$('presetList').append(e)});$('projectPreset').innerHTML=presets.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('')}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function setTab(n){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===n));['library','reference','project','github'].forEach(x=>$('tab-'+x).classList.toggle('hidden',x!==n))}
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
-$('newPreset').onclick=()=>{let name=prompt('Nama preset baru?');if(!name)return;let desc=prompt('Deskripsi gaya visual?')||'Preset buatan pengguna';presets.push({id:'custom-'+Date.now(),name,description:desc,palette:['#f7f7f2','#111827','#59c9a8'],motion:['slide-up','zoom-in'],beatSeconds:[2,5],sceneTypes:['title','kinetic','card','stat']});persist();$('libraryStatus').textContent='Preset ditambahkan.'};
-$('exportPresets').onclick=()=>download('aes-presets.json',JSON.stringify({version:1,presets},null,2),'application/json');
-$('importPresets').onchange=async e=>{try{let x=JSON.parse(await e.target.files[0].text());let arr=x.presets||x;if(!Array.isArray(arr))throw Error('Format tidak dikenal');presets=arr;await persist();$('libraryStatus').textContent='Bank preset berhasil diimpor.'}catch(err){$('libraryStatus').textContent=err.message}};
-function download(n,s,t){let a=document.createElement('a'),u=URL.createObjectURL(new Blob([s],{type:t}));a.href=u;a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)}
-$('refVideo').onchange=e=>{let f=e.target.files[0];if(!f)return;if(refURL)URL.revokeObjectURL(refURL);refURL=URL.createObjectURL(f);$('refPlayer').src=refURL;$('refPlayer').classList.remove('hidden');$('refStatus').textContent='Video dimuat: '+f.name+' · '+(f.size/1048576).toFixed(1)+' MB'};
-$('clearRef').onclick=()=>{$('refPlayer').pause();$('refPlayer').classList.add('hidden');$('frames').innerHTML='';framesData=[]};
-$('extractFrames').onclick=async()=>{let v=$('refPlayer');if(!v.src){$('refStatus').textContent='Pilih video terlebih dahulu.';return}await new Promise(r=>{if(v.readyState>=1)r();else v.onloadedmetadata=r});let dur=v.duration,points=[0.08,.25,.42,.59,.76,.93];$('frames').innerHTML='';framesData=[];for(let p of points){v.currentTime=Math.min(Math.max(.05,dur*p),Math.max(.05,dur-.05));await new Promise(r=>v.onseeked=r);let c=document.createElement('canvas');c.width=240;c.height=360;c.getContext('2d').drawImage(v,0,0,240,360);let url=c.toDataURL('image/jpeg',.7);framesData.push(url);let im=document.createElement('img');im.src=url;im.style='width:100%;border-radius:7px';let box=document.createElement('div');box.className='preset';box.append(im);let cap=document.createElement('small');cap.textContent=(dur*p).toFixed(1)+' detik';box.append(cap);$('frames').append(box)}$('refStatus').textContent='6 sampel frame dibuat. Catat pola visualnya di kolom analisis.'};
-$('saveRefPreset').onclick=async()=>{let name=$('refName').value.trim();if(!name)return;let notes=$('refNotes').value.trim();presets.push({id:'ref-'+Date.now(),name,description:notes||'Dibuat dari video referensi',referenceAnalysis:notes,sampleFrames:framesData,palette:['#f7f7f2','#111827','#59c9a8'],motion:['slide-up','zoom-in','float'],beatSeconds:[2,5],sceneTypes:['title','kinetic','card','stat','footage']});await persist();$('refStatus').textContent='Preset disimpan ke bank lokal. Ekspor atau sinkronkan ke GitHub untuk backup.';setTab('library')};
-$('makeScenes').onclick=()=>{let paras=$('script').value.split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean);if(!paras.length){alert('Masukkan naskah terlebih dahulu.');return}scenes=paras.map((t,i)=>({text:t,type:['title','kinetic','card','stat'][i%4],duration:4}));sceneIndex=0;renderScenes();drawScene()};
-function renderScenes(){$('sceneList').innerHTML='';scenes.forEach((s,i)=>{let d=document.createElement('div');d.className='scene'+(i===sceneIndex?' active':'');d.textContent=(i+1)+'. '+s.type+' — '+s.text.slice(0,90);d.onclick=()=>{sceneIndex=i;renderScenes();drawScene()};$('sceneList').append(d)})}
-$('prevScene').onclick=()=>{if(!scenes.length)return;sceneIndex=(sceneIndex+scenes.length-1)%scenes.length;renderScenes();drawScene()};
-$('nextScene').onclick=()=>{if(!scenes.length)return;sceneIndex=(sceneIndex+1)%scenes.length;renderScenes();drawScene()};
-$('saveProject').onclick=async()=>{await dbSet('project',{title:$('projectTitle').value,format:$('format').value,scenes});$('renderStatus').textContent='Proyek disimpan di perangkat.'};
-function drawFrame(canvas,s,t=0){let c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,p=presets.find(x=>x.id===$('projectPreset').value)||presets[0],pal=p.palette||['#f7f7f2','#111827','#59c9a8'];let bg=pal[0],fg=pal[1],ac=pal[2];c.fillStyle=bg;c.fillRect(0,0,w,h);let y=h*.34+Math.sin(t/500)*18;c.fillStyle=ac;c.globalAlpha=.18;c.beginPath();c.arc(w*.82,h*.18,Math.min(w,h)*.22,0,Math.PI*2);c.fill();c.globalAlpha=1;
-c.fillStyle=fg;c.textAlign='left';c.font='bold '+Math.round(w*.045)+'px system-ui';c.fillText((p.name||'EXPLAINER').toUpperCase().slice(0,28),w*.09,h*.16);
-let txt=s?.text||'Masukkan naskah untuk memulai';let words=txt.split(/\s+/),lines=[],line='';c.font='bold '+Math.round(w*.085)+'px system-ui';let max=w*.82;for(let word of words){let test=line?line+' '+word:word;if(c.measureText(test).width>max&&line){lines.push(line);line=word}else line=test}if(line)lines.push(line);let offset=(1-Math.min(1,t/700))*70;lines.slice(0,6).forEach((l,i)=>{c.globalAlpha=Math.min(1,t/500);c.fillStyle=fg;c.fillText(l,w*.09,y+i*w*.105+offset)});c.globalAlpha=1;
-c.fillStyle=ac;let cardY=h*.73+Math.sin(t/600)*8;c.beginPath();roundRect(c,w*.09,cardY,w*.82,h*.105,22);c.fill();c.fillStyle=fg;c.font='bold '+Math.round(w*.035)+'px system-ui';c.fillText((s?.type||'SCENE').toUpperCase()+'  ·  '+String(sceneIndex+1).padStart(2,'0'),w*.13,cardY+h*.065);
-c.fillStyle=fg;c.globalAlpha=.5;c.fillRect(w*.09,h*.91,w*.82,5);c.globalAlpha=1;c.fillStyle=ac;c.fillRect(w*.09,h*.91,w*.82*((sceneIndex+1)/Math.max(1,scenes.length)),5)}
-function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
-function drawScene(){let s=scenes[sceneIndex];drawFrame($('stage'),s,700);drawFrame($('stage2'),s,700)}
-$('playPreview').onclick=()=>{if(!scenes.length){alert('Buat storyboard terlebih dahulu.');return}if(anim)cancelAnimationFrame(anim);let start=performance.now(),duration=(scenes[sceneIndex].duration||4)*1000;function loop(now){let t=now-start;drawFrame($('stage'),scenes[sceneIndex],t);drawFrame($('stage2'),scenes[sceneIndex],t);if(t<duration)anim=requestAnimationFrame(loop);else anim=null}anim=requestAnimationFrame(loop)};
-$('record').onclick=async()=>{if(!scenes.length){alert('Buat storyboard dahulu.');return}let canvas=$('stage'),ctx=canvas.getContext('2d'),stream=canvas.captureStream(30),mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));if(!mime){$('renderStatus').textContent='MediaRecorder video tidak didukung browser ini.';return}chunks=[];recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:5000000});recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onstop=()=>{let blob=new Blob(chunks,{type:mime});download(($('projectTitle').value||'video').replace(/[^a-z0-9-_]/gi,'_')+'.webm',blob,mime);$('renderStatus').textContent='Ekspor selesai: '+(blob.size/1048576).toFixed(1)+' MB · WebM';$('progress').style.width='100%'};recorder.start();$('record').disabled=true;$('stopRecord').disabled=false;$('renderStatus').textContent='Merekam adegan. Jangan pindah tab atau kunci layar.';let i=0,start=performance.now(),sceneStart=start;function frame(now){if(!recorder||recorder.state!=='recording')return;let s=scenes[i],elapsed=now-sceneStart;drawFrame(canvas,s,elapsed);$('progress').style.width=((i+Math.min(1,elapsed/((s.duration||4)*1000)))/scenes.length*100)+'%';if(elapsed>(s.duration||4)*1000){i++;sceneStart=now;if(i>=scenes.length){recorder.stop();$('record').disabled=false;$('stopRecord').disabled=true;return}}requestAnimationFrame(frame)}requestAnimationFrame(frame)};
-$('stopRecord').onclick=()=>{if(recorder&&recorder.state==='recording')recorder.stop();$('record').disabled=false;$('stopRecord').disabled=true};
-async function gh(path,method,body){let owner=$('ghOwner').value.trim(),repo=$('ghRepo').value.trim(),token=$('ghToken').value.trim();if(!owner||!repo||!token)throw Error('Isi owner, repository, dan token terlebih dahulu.');let url=`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path}`;let headers={'Accept':'application/vnd.github+json','Authorization':'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28'};let resp=await fetch(url,{method,headers,...(body?{body:JSON.stringify(body)}:{})});let data=await resp.json();if(!resp.ok)throw Error(data.message||'GitHub API error '+resp.status);return data}
-$('ghPull').onclick=async()=>{try{$('ghStatus').textContent='Mengambil bank preset…';let d=await gh('presets/library.json','GET');let decoded=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));let x=JSON.parse(decoded);presets=x.presets||x;await persist();$('ghStatus').textContent='Berhasil mengambil '+presets.length+' preset dari GitHub.'}catch(e){$('ghStatus').textContent='Gagal: '+e.message}};
-$('ghPush').onclick=async()=>{try{$('ghStatus').textContent='Menyimpan bank preset…';let sha;try{sha=(await gh('presets/library.json','GET')).sha}catch(e){if(!String(e.message).includes('Not Found'))throw e}let content=btoa(unescape(encodeURIComponent(JSON.stringify({version:1,presets},null,2))));let body={message:'Update Auto Explainer preset library',content,...(sha?{sha}:{})};await gh('presets/library.json','PUT',body);$('ghStatus').textContent='Berhasil menyimpan '+presets.length+' preset ke GitHub.'}catch(e){$('ghStatus').textContent='Gagal: '+e.message}};
-(async()=>{try{let saved=await dbGet(KEY);if(saved&&saved.length)presets=saved;$('connection').textContent='Penyimpanan lokal aktif';renderLibrary();let proj=await dbGet('project');if(proj){$('projectTitle').value=proj.title||'';$('format').value=proj.format||'9:16';scenes=proj.scenes||[];renderScenes();drawScene()}}catch(e){$('connection').textContent='Mode tanpa IndexedDB';renderLibrary()}})();
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-</script></body></html>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">A</div>
+      <div>
+        <strong>Auto Explainer Studio</strong>
+        <small>Local-first video maker · v0.3</small>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="status" class="status">Siap</span>
+      <button id="saveBtn" class="button secondary">Simpan</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar">
+      <section class="panel">
+        <h2>Proyek</h2>
+        <label for="projectName">Nama proyek</label>
+        <input id="projectName" value="Proyek Explainer Baru">
+        <label for="formatSelect">Format video</label>
+        <select id="formatSelect">
+          <option value="vertical">Vertikal · 9:16</option>
+          <option value="horizontal">Horizontal · 16:9</option>
+        </select>
+        <label for="presetSelect">Gaya visual</label>
+        <select id="presetSelect">
+          <option value="minimalist-3d-editorial">
+            Minimalist 3D Editorial
+          </option>
+        </select>
+      </section>
+
+      <section class="panel">
+        <h2>Storyboard</h2>
+        <div id="sceneList" class="scene-list"></div>
+        <button id="addSceneBtn" class="button secondary full">
+          + Tambah adegan
+        </button>
+      </section>
+
+      <section class="panel">
+        <h2>Kontrol animasi</h2>
+        <label for="speedRange">Kecepatan preview</label>
+        <select id="speedRange">
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.5">1.5×</option>
+          <option value="2">2×</option>
+        </select>
+        <p class="muted">
+          Kecepatan ini hanya memengaruhi preview, bukan durasi storyboard.
+        </p>
+      </section>
+    </aside>
+
+    <section class="editor">
+      <div class="editor-heading">
+        <div>
+          <h1>Studio Preview</h1>
+          <p>Pratinjau komposisi dan gerakan adegan</p>
+        </div>
+        <div class="editor-actions">
+          <button id="playBtn" class="button primary">▶ Putar</button>
+          <button id="resetBtn" class="button secondary">↺ Ulangi</button>
+        </div>
+      </div>
+
+      <div class="preview-wrap">
+        <canvas id="previewCanvas" width="576" height="1024">
+          Browser tidak mendukung Canvas.
+        </canvas>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-top">
+          <strong>Timeline</strong>
+          <span id="timeLabel">00:00 / 00:00</span>
+        </div>
+        <input id="timelineRange" type="range" min="0" max="1000" value="0">
+      </div>
+    </section>
+
+    <aside class="inspector">
+      <section class="panel">
+        <h2>Properti adegan</h2>
+        <label for="sceneTitle">Judul</label>
+        <input id="sceneTitle" placeholder="Judul adegan">
+
+        <label for="sceneSubtitle">Subjudul</label>
+        <textarea id="sceneSubtitle" rows="3"
+          placeholder="Penjelasan singkat"></textarea>
+
+        <label for="sceneDuration">Durasi (detik)</label>
+        <input id="sceneDuration" type="number" min="1" max="30" value="5">
+
+        <button id="applySceneBtn" class="button primary full">
+          Terapkan perubahan
+        </button>
+      </section>
+
+      <section class="panel">
+        <h2>Elemen visual</h2>
+        <button id="addCardBtn" class="button secondary full">
+          + Kartu visual
+        </button>
+        <button id="addTextBtn" class="button secondary full">
+          + Teks tambahan
+        </button>
+        <div id="elementList" class="element-list"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Data proyek</h2>
+        <button id="exportProjectBtn" class="button secondary full">
+          Ekspor storyboard JSON
+        </button>
+        <label class="button secondary full file-label">
+          Impor storyboard JSON
+          <input id="importProjectInput" type="file"
+            accept=".json,application/json" hidden>
+        </label>
+      </section>
+    </aside>
+  </main>
+
+  <footer>
+    Auto Explainer Studio · v0.3 · Preview lokal · Belum mengekspor video
+  </footer>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
