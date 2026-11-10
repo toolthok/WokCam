@@ -21,7 +21,7 @@ dalam memori + `localStorage`:
 | --- | --- |
 | `/` | **Editor Timeline** — drag-reorder, trim durasi (2–15 s, langkah 0,5), edit teks langsung di blok, chip ⚡ transisi, penugasan animasi/style, katalog latar & overlay, undo/redo, autosave; proyek **Tutorial** 8 scene (contoh video + cara pakai) dan **Panduan** tur 10 langkah |
 | `/generator` | Prompt naskah & prompt preset → salin ke ChatGPT/Claude → tempel balik → divalidasi |
-| `/koleksi` | Koleksi Style: bedah video referensi, impor JSON toleran, paket siap pakai (horror/minimalis), ekspor/impor berkas |
+| `/koleksi` | Koleksi Style: **deteksi otomatis dari video (tanpa AI)**, bedah video referensi lewat AI, impor JSON toleran, paket siap pakai (horror/minimalis), ekspor/impor berkas |
 | `/unduhan` | Berkas untuk diunduh (repo ZIP + PRD) |
 
 ## Kontrak data (versi 1)
@@ -40,7 +40,7 @@ bun install          # atau npm install
 bun run dev          # http://localhost:3000
 ```
 
-## Menguji (430 uji · 10 rangkaian)
+## Menguji (448 uji · 11 rangkaian)
 
 ```bash
 bun scripts/test-parser.ts          # 37 — parser naskah
@@ -54,6 +54,7 @@ bun scripts/test-editor-proyek.ts   # 91 — model timeline: clamp durasi, reord
                                     #     serialisasi proyek, transisi, gelombang suara
 bun scripts/test-promo-style.ts     # 56 — pratinjau WAAPI: keyframes animasi/transisi/style
 bun scripts/test-tutorial.ts        # 68 — proyek tutorial: 8 scene, katalog latar/overlay
+bun scripts/test-video-analyzer.ts  # 18 — deteksi transisi/loop/animasi/gaya dari frame video
 ```
 
 ## Struktur

@@ -5,6 +5,27 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.4.0] — 2026-11-11
+
+Tema: **Deteksi gaya langsung dari video (tanpa AI)** + serah-terima Generator → Editor.
+
+### Ditambahkan
+- **Deteksi Otomatis dari Video** di halaman Koleksi: pilih video referensi → dibaca di
+  perangkat (tidak diunggah) → usulan **transisi** (potong/pudar silang/blur/sapuan+arah/geser+arah/zoom),
+  **loop** (pan 4 arah, zoom in/out), **animasi teks masuk/keluar** (fade/slide+arah/wipe/zoom/shrink/
+  kata-demi-kata) dan **gaya teks** (warna, outline, posisi, ukuran, tebal font). Hasil tampil dengan
+  pratinjau + kotak centang, lalu disimpan lewat jalur impor Koleksi yang sama (validasi + dedupe).
+- `src/lib/video-analyzer.ts` — analisis murni (tanpa DOM, siap diport ke Kotlin);
+  `src/lib/video-sampler.ts` — pencuplik frame browser; `components/koleksi/DeteksiVideo.tsx` — UI.
+- **Kirim ke Editor**: tombol di Generator (ganti proyek / tambah ke proyek) lewat serah-terima
+  localStorage sekali pakai (`wokcam.kirim.v1`); hasil "Perbaiki Ritme" ikut terbawa; bisa di-Undo.
+- `scripts/test-video-analyzer.ts` — 18 uji sintetis (potong, pudar silang, blur, sapuan, geser, pan,
+  statis, animasi masuk fade/slide, gaya teks, integrasi koleksi).
+
+### Batas yang diketahui
+- Transisi "flip" belum dikenali; animasi teks hanya terbaca pada latar yang relatif diam;
+  font hanya ditebak dari ketebalan goresan. Belum diuji pada video nyata di browser.
+
 ## [0.3.0] — 2026-11-11
 
 Tema: **Gaya video referensi — promo tipografi terang** (meniru video promo

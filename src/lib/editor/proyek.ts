@@ -591,6 +591,36 @@ export function simpanProyek(p: Proyek): void {
   }
 }
 
+/* ── Serah-terima Generator → Editor (satu arah, sekali pakai) ──
+ * Generator menaruh HasilNaskah yang sudah tervalidasi (termasuk "Perbaiki Ritme") di
+ * localStorage; editor mengambil + menghapusnya saat hidrasi. Aman dibatalkan lewat Undo. */
+export const KUNCI_KIRIM = "wokcam.kirim.v1";
+export type Kiriman = { mode: "ganti" | "tambah"; hasil: HasilNaskah };
+
+export function kirimKeEditor(hasil: HasilNaskah, mode: "ganti" | "tambah"): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    window.localStorage.setItem(KUNCI_KIRIM, JSON.stringify({ mode, hasil }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function ambilKiriman(): Kiriman | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(KUNCI_KIRIM);
+    if (!raw) return null;
+    window.localStorage.removeItem(KUNCI_KIRIM);
+    const o = JSON.parse(raw) as Partial<Kiriman>;
+    if (!o || !o.hasil || !Array.isArray((o.hasil as HasilNaskah).scenes)) return null;
+    return { mode: o.mode === "tambah" ? "tambah" : "ganti", hasil: o.hasil as HasilNaskah };
+  } catch {
+    return null;
+  }
+}
+
 export function muatProyek(): Proyek | null {
   if (typeof window === "undefined") return null;
   try {

@@ -15,7 +15,9 @@
 
 import { create } from 'zustand'
 import {
+  ambilKiriman,
   clampDurasi,
+  dariHasilNaskah,
   dariNaskahMentah,
   duplikatScene,
   geserScene,
@@ -169,6 +171,17 @@ export const useEditor = create<EditorStore>((set, get) => {
         pastikanPaketTutorial() // proyek tutorial assignment-nya merujuk Paket Minimalis + Promo
         simpan() // simpan proyek tutorial sebagai titik awal
         set({ hydrasiSelesai: true })
+      }
+      /* serah-terima dari Generator: tersedia lewat Undo bila salah kirim */
+      const kiriman = ambilKiriman()
+      if (kiriman) {
+        const baru = dariHasilNaskah(kiriman.hasil)
+        if (baru.length) {
+          dorongRiwayat()
+          if (kiriman.mode === 'ganti') set({ scenes: baru, selectedId: baru[0].id, time: 0, playing: false })
+          else set({ scenes: [...get().scenes, ...baru], selectedId: baru[0].id, playing: false })
+          simpan()
+        }
       }
     },
 

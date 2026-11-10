@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { MOODS, fmtDurasi, parseNaskah, terapkanRitme, type HasilNaskah } from "@/lib/naskah-parser";
 import { simpanEntriKeKoleksi, uraiJSONToleran } from "@/lib/preset-store";
 import { PratinjauBersih } from "@/components/preset-preview";
+import { kirimKeEditor } from "@/lib/editor/proyek";
 
 /* ══════════ Konstanta kontrak (sumber tunggal, akan dipindah ke Kotlin) ══════════ */
 
@@ -288,6 +290,13 @@ export default function GeneratorPage() {
   const [cta, setCta] = useState("ikutkan dan bagikan");
   const [hasilNaskah, setHasilNaskah] = useState<HasilNaskah | null>(null);
   const [pasteInfo, setPasteInfo] = useState("");
+  const router = useRouter();
+  const [kirimGalat, setKirimGalat] = useState("");
+  const kirim = (mode: "ganti" | "tambah") => {
+    if (!hasilNaskah) return;
+    if (kirimKeEditor(hasilNaskah, mode)) router.push("/");
+    else setKirimGalat("Penyimpanan browser penuh/dinonaktifkan — gunakan Salin JSON lalu Impor di editor.");
+  };
 
   const promptNaskah = useMemo(
     () => bangunPromptNaskah({
@@ -542,6 +551,12 @@ export default function GeneratorPage() {
                       </div>
                     ))}
                   </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => kirim("ganti")} className={btnUtama}>🚀 Kirim ke Editor</button>
+                    <button onClick={() => kirim("tambah")} className={btnKedua}>➕ Tambah ke proyek</button>
+                  </div>
+                  <p className="text-[11px] text-zinc-500">“Kirim” mengganti scene proyek aktif (bisa di-Undo di editor); “Tambah” menempelkannya di akhir.</p>
+                  {kirimGalat && <p className="text-[11px] text-red-400">{kirimGalat}</p>}
                   {jsonNaskah && (
                     <div className="grid grid-cols-2 gap-2">
                       <button onClick={() => flash(jsonNaskah, "jn")} className={btnKedua}>

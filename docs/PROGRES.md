@@ -1,10 +1,18 @@
 # PROGRES wokCam — Prototype Web
 
-> Diperbarui: 11 November 2026 · Versi repo: **v0.3.0 — "Gaya Video Referensi (Promo Tipografi Terang)"**
+> Diperbarui: 11 November 2026 · Versi repo: **v0.4.0 — "Deteksi Video + Kirim ke Editor"** (sebelumnya v0.3.0)
 > Tahap PRD: ② web prototype (logika siap dipindah ke Kotlin; tahap ③ kerangka app)
 > Riwayat versi per rilis: lihat [CHANGELOG.md](CHANGELOG.md)
 
 ## Yang sudah selesai
+
+### Deteksi dari video & serah-terima (v0.4)
+- **Deteksi Otomatis dari Video** (Koleksi): transisi, loop, animasi masuk/keluar, gaya teks → usulan
+  berpratinjau + centang → Koleksi. Analisis murni di `video-analyzer.ts` (18 uji sintetis lulus).
+- **Kirim ke Editor** dari Generator (ganti / tambah), sekali pakai, bisa di-Undo.
+- **PERLU DIVERIFIKASI di browser nyata**: sampler (`video-sampler.ts`) dan UI belum dijalankan
+  (tsc penuh & `next build` belum dijalankan di lingkungan tanpa node_modules). Coba dengan video
+  promo 30–60 dtk; sesuaikan ambang di `video-analyzer.ts` bila banyak salah deteksi.
 
 ### Gaya video referensi — promo tipografi terang (v0.3)
 - **Bedah video referensi user** (69 dtk, promo ala opencode/insiderforce): latar putih
@@ -75,8 +83,7 @@
    (gelombang deterministik); belum ada TTS nyata; field `sfx` di kontrak belum dipakai.
 2. **Video keluaran masih rekam layar manual** — sesuai PRD untuk tahap ini, tapi belum ada
    perekaman/render otomatis.
-3. **Generator → Editor belum tersambung otomatis** — hasil JSON/naskah masih disalin-tempel
-   manual (belum ada tombol "kirim ke editor" via localStorage/berkas).
+3. ~~Generator → Editor~~ — sudah tersambung (v0.4: tombol Kirim ke Editor).
 4. **Layar sentuh belum dioptimalkan** — drag/trim memakai pointer events dan bekerja di mouse;
    belum diuji/disesuaikan untuk HP (touch-action, target jempol).
 5. **Uji #6 (proyek kuantum 48 scene) belum divalidasi otomatis** secara end-to-end di editor.
@@ -94,8 +101,8 @@
 
 ## Rencana berikutnya (urutan usulan)
 
-1. **Sinkronisasi Generator → Editor**: tombol "Kirim ke Editor" di halaman generator
-   (localStorage handoff + toast), supaya tanpa salin-tempel manual.
+1. ~~Sinkronisasi Generator → Editor~~ (selesai v0.4). Berikutnya: **uji deteksi video pada video nyata**
+   & kalibrasi ambang; tambah deteksi "flip"; render video otomatis (MediaRecorder dari kanvas).
 2. **Fase audio**: pemutaran TTS sinkron dengan playhead (pilih suara, kecepatan), pemetaan
    `sfx`, dan estimasi ulang durasi dari audio nyata.
 3. **Mulai tahap ③ — kerangka app Kotlin**: port kontrak (naskah-parser, koleksi v1, proyek v1)

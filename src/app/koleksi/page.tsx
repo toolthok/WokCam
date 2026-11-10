@@ -8,6 +8,7 @@ import {
   type Koleksi, type HasilImporKoleksi, type NamaPaket,
 } from "@/lib/preset-store";
 import { PratinjauAnimasi, PratinjauTransisi, PratinjauStyle } from "@/components/preset-preview";
+import DeteksiVideo from "@/components/koleksi/DeteksiVideo";
 
 /* ══════════ Util (pola sama dengan halaman generator) ══════════ */
 
@@ -244,9 +245,12 @@ export default function KoleksiPage() {
           ))}
         </div>
 
+        {/* ★ Deteksi otomatis dari video (tanpa AI) */}
+        <DeteksiVideo />
+
         {/* 1 · Prompt Urai Video */}
         <section className="mb-5 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
-          <h2 className="mb-1 text-sm font-bold uppercase tracking-wider text-violet-300">1 · Bedah Video Referensi</h2>
+          <h2 className="mb-1 text-sm font-bold uppercase tracking-wider text-violet-300">1 · Bedah Video Referensi (lewat AI)</h2>
           <p className="mb-3 text-xs leading-relaxed text-zinc-500">
             Menemukan video bagus? Jangan disia-siakan: salin prompt ini ke ChatGPT/Claude/Gemini, lampirkan video
             (atau screenshot / deskripsinya), lalu salin balasan JSON-nya ke bagian 2 di bawah.
