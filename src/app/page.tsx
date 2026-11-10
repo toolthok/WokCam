@@ -16,6 +16,7 @@ import { Timeline } from '@/components/editor/Timeline'
 import { Inspector } from '@/components/editor/Inspector'
 import { ImportNaskahDialog } from '@/components/editor/ImportNaskahDialog'
 import { ExportDialog } from '@/components/editor/ExportDialog'
+import { PanduanEditor, KUNCI_PANDUAN } from '@/components/editor/PanduanEditor'
 import { useEditor } from '@/lib/editor/store'
 import { fmtJam, totalDurasi } from '@/lib/editor/proyek'
 
@@ -68,12 +69,44 @@ function StatusBar() {
 export default function Page() {
   const [imporOpen, setImporOpen] = useState(false)
   const [eksporOpen, setEksporOpen] = useState(false)
+  const [panduanOpen, setPanduanOpen] = useState(false)
   const hidrasi = useEditor((s) => s.hidrasi)
+  const panduanMinta = useEditor((s) => s.panduanMinta)
+
+  const tutupPanduan = () => {
+    setPanduanOpen(false)
+    /* tandai sudah melihat — kunjungan berikutnya tidak auto-buka */
+    try {
+      window.localStorage.setItem(KUNCI_PANDUAN, '1')
+    } catch {
+      /* mode privat — hanya berarti tur tampil lagi nanti */
+    }
+  }
 
   /* hidrasi proyek dari localStorage SETELAH mount — hindari hydration mismatch */
   useEffect(() => {
     hidrasi()
   }, [hidrasi])
+
+  /* kunjungan pertama → tur langsung jalan (jawaban "belum tahu cara pakainya") */
+  useEffect(() => {
+    if (!hydrasiSelesaiLihat()) return
+    let sudah = false
+    try {
+      sudah = window.localStorage.getItem(KUNCI_PANDUAN) === '1'
+    } catch {
+      sudah = false
+    }
+    if (!sudah) {
+      const t = setTimeout(() => setPanduanOpen(true), 600)
+      return () => clearTimeout(t)
+    }
+  }, [])
+
+  /* tombol "Cara pakai" di banner tutorial & aksi lain minta tur dibuka */
+  useEffect(() => {
+    if (panduanMinta > 0) setPanduanOpen(true)
+  }, [panduanMinta])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -100,7 +133,11 @@ export default function Page() {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950 text-foreground lg:h-screen lg:overflow-hidden">
       <PlaybackEngine />
-      <TopBar onOpenImpor={() => setImporOpen(true)} onOpenEkspor={() => setEksporOpen(true)} />
+      <TopBar
+        onOpenImpor={() => setImporOpen(true)}
+        onOpenEkspor={() => setEksporOpen(true)}
+        onOpenPanduan={() => setPanduanOpen(true)}
+      />
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <SceneList className="order-2 lg:order-1 lg:w-60 lg:shrink-0 max-lg:max-h-72" />
@@ -117,6 +154,12 @@ export default function Page() {
 
       <ImportNaskahDialog open={imporOpen} onOpenChange={setImporOpen} />
       <ExportDialog open={eksporOpen} onOpenChange={setEksporOpen} />
+      <PanduanEditor open={panduanOpen} onTutup={tutupPanduan} />
     </div>
   )
+}
+
+/* hidrasi selesai ditandai di store — baca lepas hook agar effect sekali jalan */
+function hydrasiSelesaiLihat(): boolean {
+  return useEditor.getState().hydrasiSelesai
 }

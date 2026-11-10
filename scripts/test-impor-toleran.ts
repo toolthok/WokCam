@@ -1,3 +1,4 @@
+/// <reference types="bun-types" />
 /* ═══ Test regresi: uraiJSONToleran — keluaran AI nyata yang dulu gagal ═══
  * Latar: user menyalin balasan ChatGPT/Claude pakai IKON SALIN, tapi impor selalu
  * "Bukan JSON valid". Parser lama hanya mencoba 1 pola (fence pertama / kurung

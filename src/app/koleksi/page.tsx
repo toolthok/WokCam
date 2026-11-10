@@ -355,6 +355,7 @@ export default function KoleksiPage() {
             {([
               { id: "horror", nama: "Paket Horror Mistis", isi: "6 animasi masuk · kabut, bayangan, teror — gaya cerita horor" },
               { id: "minimalis", nama: "Paket Minimalis Editorial", isi: "6 animasi (in/out/loop) · 4 transisi · 4 gaya teks — hasil bedah video referensi screenshot" },
+              { id: "promo", nama: "Paket Promo Tipografi Terang", isi: "gaya video promo viral: kata muncul berturut (kata-demi-kata), kartu mengambang, transisi blur · 4 animasi · 3 transisi · 3 gaya teks" },
             ] as { id: NamaPaket; nama: string; isi: string }[]).map(pk => (
               <div key={pk.id} className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
                 <p className="text-sm font-semibold text-zinc-100">{pk.nama}</p>

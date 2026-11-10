@@ -6,6 +6,10 @@ ZIP dirancang kompatibel dengan gitUploader.html:
 
 v0.2.0: tanpa database (Prisma/Sheets dihapus), menyertakan skrip uji bun,
 README.md, docs/PROGRES.md, dan menyalin ZIP ke public/ untuk halaman /unduhan.
+
+v0.3.0: editor timeline lengkap (drag-reorder, trim, edit teks, transisi, katalog
+latar/overlay, undo/redo, proyek tutorial 8 scene + PanduanEditor tur 10 langkah),
+pratinjau WAAPI koleksi, uji promo-style & tutorial, total 430 uji · 10 rangkaian.
 """
 import os, shutil, zipfile, json
 
@@ -37,8 +41,8 @@ print(f"public/ → {sum(len(f) for _,_,f in os.walk(dst_pub))} file")
 skrip_uji = [
     "test-parser.ts", "test-preset-store.ts", "test-impor-toleran.ts",
     "test-koleksi-user.ts", "test-horror-joglo.ts", "test-alam-semesta.ts",
-    "test-kuantum.ts", "test-editor-proyek.ts", "gen-fixture-alam.ts",
-    "build_wokcam_zip.py",
+    "test-kuantum.ts", "test-editor-proyek.ts", "test-promo-style.ts",
+    "test-tutorial.ts", "gen-fixture-alam.ts", "build_wokcam_zip.py",
 ]
 os.makedirs(f"{STAGE}/scripts/fixtures")
 n_skrip = 0
@@ -56,7 +60,8 @@ print(f"scripts/ → {n_skrip} file (uji + fixture)")
 shutil.copy2(f"{ROOT}/README.md", f"{STAGE}/README.md")
 os.makedirs(f"{STAGE}/docs")
 shutil.copy2(f"{ROOT}/docs/PROGRES.md", f"{STAGE}/docs/PROGRES.md")
-print("README.md + docs/PROGRES.md ditulis")
+shutil.copy2(f"{ROOT}/docs/CHANGELOG.md", f"{STAGE}/docs/CHANGELOG.md")
+print("README.md + docs/PROGRES.md + docs/CHANGELOG.md ditulis")
 
 # ---------- 4. config ----------
 CONFIGS = ["tsconfig.json", "tailwind.config.ts", "postcss.config.mjs",
@@ -72,8 +77,8 @@ print("config disalin:", ", ".join(c for c in CONFIGS if os.path.exists(f"{STAGE
 # package.json versi repo (bersih, portabel)
 pkg = json.load(open(f"{ROOT}/package.json"))
 pkg["name"] = "wokcam"
-pkg["version"] = "0.2.0"
-pkg["description"] = "Studio produksi video faceless Rp0 — prototype Next.js TANPA database: generator prompt, koleksi style (localStorage), editor timeline langsung, pratinjau + rekam layar. Kontrak siap porting ke app Kotlin."
+pkg["version"] = "0.3.0"
+pkg["description"] = "Studio produksi video faceless Rp0 — prototype Next.js TANPA database: generator prompt, koleksi style (localStorage), editor timeline langsung (drag, trim, teks, transisi, katalog latar/overlay), proyek tutorial + panduan interaktif, pratinjau WAAPI. Kontrak siap porting ke app Kotlin."
 pkg["license"] = "MIT"
 pkg["scripts"] = {
     "dev": "next dev -p 3000",
@@ -83,7 +88,7 @@ pkg["scripts"] = {
     "test": "bash scripts/uji-semua.sh",
 }
 json.dump(pkg, open(f"{STAGE}/package.json", "w"), indent=2, ensure_ascii=False)
-print("package.json (versi repo 0.2.0) ditulis")
+print(f"package.json (versi repo {pkg['version']}) ditulis")
 
 # next.config.ts versi repo (tanpa standalone, tanpa bypass TS)
 open(f"{STAGE}/next.config.ts", "w").write(
@@ -145,9 +150,21 @@ with zipfile.ZipFile(OUT) as z:
     assert not any(n.startswith("__MACOSX") for n in names)
     assert not any(".DS_Store" in n for n in names)
     assert "README.md" in names and "docs/PROGRES.md" in names, "dokumentasi hilang"
+    assert "docs/CHANGELOG.md" in names, "changelog hilang"
     assert any(n.startswith("scripts/test-") for n in names), "uji hilang"
     assert "src/lib/db.ts" not in names, "db.ts masih ada!"
     assert "prisma/schema.prisma" not in names
+    for terlarang in [
+        "src/app/api/route.ts",
+        "src/components/editor/DatabasePanel.tsx",
+        "src/components/editor/ExportModal.tsx",
+        "src/components/editor/ToolGuidePanel.tsx",
+        "src/components/editor/AnimationLibrary.tsx",
+        "src/lib/editor/engine.ts",
+        "src/lib/editor/model.ts",
+    ]:
+        assert terlarang not in names, f"sisa era database: {terlarang}"
+    assert not any(n.startswith("src/components/editor/tabs/") for n in names), "tabs lama masih ada"
     infos = z.infolist()
     assert all(i.compress_type in (0, 8) for i in infos), "metode kompresi tidak didukung"
     assert all((i.flag_bits & 0x1) == 0 for i in infos), "ada entri terenkripsi"

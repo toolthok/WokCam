@@ -7,7 +7,7 @@
  */
 
 import { useState } from 'react'
-import { Eraser, Layers, Sparkles, Type } from 'lucide-react'
+import { Eraser, Layers, Sparkles, Tag, Type } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button'
 import { useEditor } from '@/lib/editor/store'
 import { AssignMenu } from '@/components/editor/AssignMenu'
-import { fmtDurasi, totalDurasi } from '@/lib/editor/proyek'
+import { fmtDurasi, kelasLatar, LATAR_PRESET, OVERLAY_PRESET, totalDurasi } from '@/lib/editor/proyek'
 import { MOODS } from '@/lib/naskah-parser'
 import { cn } from '@/lib/utils'
 
@@ -69,6 +69,9 @@ function BarisAssign({
 export function Inspector({ className }: { className?: string }) {
   const scenes = useEditor((s) => s.scenes)
   const selectedId = useEditor((s) => s.selectedId)
+  const badge = useEditor((s) => s.badge)
+  const watermark = useEditor((s) => s.watermark)
+  const setBranding = useEditor((s) => s.setBranding)
   const perbaruiScene = useEditor((s) => s.perbaruiScene)
   const rekamRiwayat = useEditor((s) => s.rekamRiwayat)
   const aturDurasi = useEditor((s) => s.aturDurasi)
@@ -76,6 +79,8 @@ export function Inspector({ className }: { className?: string }) {
   const terapkanTransisi = useEditor((s) => s.terapkanTransisi)
   const terapkanTransisiSemua = useEditor((s) => s.terapkanTransisiSemua)
   const terapkanStyle = useEditor((s) => s.terapkanStyle)
+  const terapkanLatar = useEditor((s) => s.terapkanLatar)
+  const terapkanOverlay = useEditor((s) => s.terapkanOverlay)
 
   const scene = scenes.find((s) => s.id === selectedId) ?? scenes[0] ?? null
   const index = scene ? scenes.findIndex((s) => s.id === scene.id) : -1
@@ -85,7 +90,37 @@ export function Inspector({ className }: { className?: string }) {
   const [sliderDurasi, setSliderDurasi] = useState<number | null>(null)
 
   return (
-    <aside className={cn('flex flex-col overflow-y-auto border-l bg-zinc-950/90 thin-scroll', className)} aria-label="Detail scene">
+    <aside className={cn('flex flex-col overflow-y-auto border-l bg-zinc-950/90 thin-scroll', className)} aria-label="Detail scene" data-tour="inspector">
+      {/* BRANDING proyek — badge pill atas + tanda air bawah, tampil di SEMUA scene dan
+       * tidak ikut transisi (ala video referensi). Proyek-level, bukan per-scene. */}
+      <div className="shrink-0 border-b border-zinc-800 bg-zinc-900/40 p-3.5" data-tour="inspector-branding">
+        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-sky-300">
+          <Tag className="h-3 w-3" /> Branding proyek
+        </p>
+        <div className="space-y-2">
+          <div>
+            <Label className="mb-1 block text-[10px] uppercase tracking-wide text-zinc-400">Badge pill (atas)</Label>
+            <Input
+              value={badge ?? ''}
+              onChange={(e) => setBranding({ badge: e.target.value || null })}
+              onFocus={rekamRiwayat}
+              placeholder="mis. wokCam — kosong = tanpa"
+              className="h-8 border-zinc-700 bg-zinc-950 text-xs focus-visible:border-sky-500"
+            />
+          </div>
+          <div>
+            <Label className="mb-1 block text-[10px] uppercase tracking-wide text-zinc-400">Tanda air (bawah)</Label>
+            <Input
+              value={watermark ?? ''}
+              onChange={(e) => setBranding({ watermark: e.target.value || null })}
+              onFocus={rekamRiwayat}
+              placeholder="mis. @wokcam — kosong = tanpa"
+              className="h-8 border-zinc-700 bg-zinc-950 text-xs focus-visible:border-sky-500"
+            />
+          </div>
+        </div>
+      </div>
+
       {!scene ? (
         <div className="p-4 text-sm text-zinc-500">Belum ada scene — impor naskah dulu.</div>
       ) : (
@@ -118,6 +153,9 @@ export function Inspector({ className }: { className?: string }) {
                 placeholder="maks 8 kata"
                 className="h-8 border-zinc-700 bg-zinc-950 text-xs focus-visible:border-violet-500"
               />
+              <p className="mt-1 text-[10px] text-zinc-500">
+                Penanda: <span className="font-mono text-zinc-400">**tebal**</span> dan <span className="font-mono text-zinc-400">*miring*</span> — kata muncul bergaya di pratinjau.
+              </p>
             </div>
             <div>
               <Label className="mb-1 block text-[10px] uppercase tracking-wide text-zinc-400">
@@ -132,6 +170,21 @@ export function Inspector({ className }: { className?: string }) {
                 placeholder="Kalimat yang dibacakan suara AI…"
               />
             </div>
+          </div>
+
+          {/* kartu mengambang ala video referensi */}
+          <div>
+            <Label className="mb-1 block text-[10px] uppercase tracking-wide text-zinc-400">
+              Kartu mengambang (mockup)
+            </Label>
+            <Input
+              value={scene.kartu ?? ''}
+              onChange={(e) => perbaruiScene(scene.id, { kartu: e.target.value || null }, false)}
+              onFocus={rekamRiwayat}
+              placeholder="mis. ChatGPT — kosong = tanpa kartu"
+              className="h-8 border-zinc-700 bg-zinc-950 text-xs focus-visible:border-violet-500"
+            />
+            <p className="mt-1 text-[10px] text-zinc-500">Kartu putih melayang miring — pengganti screenshot di video referensi.</p>
           </div>
 
           {/* durasi */}
@@ -168,27 +221,82 @@ export function Inspector({ className }: { className?: string }) {
             </Select>
           </div>
 
-          {/* latar */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="mb-1 block text-[10px] uppercase tracking-wide text-zinc-400">Latar (ID)</Label>
-              <Input
-                value={scene.latarId}
-                onChange={(e) => perbaruiScene(scene.id, { latarId: e.target.value }, false)}
-                onFocus={rekamRiwayat}
-                placeholder="kata kunci gambar"
-                className="h-8 border-zinc-700 bg-zinc-950 text-xs focus-visible:border-violet-500"
-              />
+          {/* latar & overlay — katalog bawaan (dulu terlupakan, kini penuh di UI) */}
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <Label className="text-[10px] uppercase tracking-wide text-zinc-400">Latar belakang</Label>
+              <button
+                onClick={() => terapkanLatar(scene.latarPreset, 'all')}
+                className="text-[10px] text-zinc-400 hover:text-violet-300"
+                title="Terapkan latar ini ke semua scene"
+              >
+                → semua
+              </button>
             </div>
-            <div>
-              <Label className="mb-1 block text-[10px] uppercase tracking-wide text-zinc-400">Latar (EN)</Label>
-              <Input
-                value={scene.latarEn}
-                onChange={(e) => perbaruiScene(scene.id, { latarEn: e.target.value }, false)}
-                onFocus={rekamRiwayat}
-                placeholder="stock keywords"
-                className="h-8 border-zinc-700 bg-zinc-950 text-xs focus-visible:border-violet-500"
-              />
+            <div className="grid grid-cols-5 gap-1.5">
+              <button
+                onClick={() => perbaruiScene(scene.id, { latarPreset: null })}
+                className={cn(
+                  'flex h-8 items-center justify-center rounded-md border bg-gradient-to-br text-[9px] font-bold',
+                  kelasLatar(null, scene.mood),
+                  scene.latarPreset === null ? 'border-violet-400 ring-1 ring-violet-400/70 text-white' : 'border-zinc-700 text-zinc-700 hover:text-zinc-500',
+                )}
+                title="Otomatis — gradien mengikuti mood scene"
+              >
+                Auto
+              </button>
+              {LATAR_PRESET.map((l) => (
+                <button
+                  key={l.id}
+                  onClick={() => perbaruiScene(scene.id, { latarPreset: l.id })}
+                  className={cn(
+                    'h-8 rounded-md border bg-gradient-to-br transition',
+                    l.kelas,
+                    scene.latarPreset === l.id ? 'border-violet-400 ring-1 ring-violet-400/70' : 'border-zinc-700 hover:border-zinc-500',
+                  )}
+                  style={l.tekstur === 'grid' ? { backgroundImage: 'radial-gradient(rgba(24,24,27,0.22) 1px, transparent 1.3px)', backgroundSize: '8px 8px' } : undefined}
+                  title={`${l.nama} (stok: ${l.kataKunciEn})`}
+                  aria-label={`Latar ${l.nama}`}
+                />
+              ))}
+            </div>
+            <p className="mt-1 text-[10px] text-zinc-500">Gradien dulu — di app nanti dipakai gambar stok sesuai kata kunci naskah.</p>
+          </div>
+
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <Label className="text-[10px] uppercase tracking-wide text-zinc-400">Overlay efek</Label>
+              <button
+                onClick={() => terapkanOverlay(scene.overlayId, 'all')}
+                className="text-[10px] text-zinc-400 hover:text-violet-300"
+                title="Terapkan overlay ini ke semua scene"
+              >
+                → semua
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => perbaruiScene(scene.id, { overlayId: null })}
+                className={cn(
+                  'rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                  scene.overlayId === null ? 'border-violet-400 bg-violet-500/15 text-violet-200' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500',
+                )}
+              >
+                tanpa
+              </button>
+              {OVERLAY_PRESET.map((o) => (
+                <button
+                  key={o.id}
+                  onClick={() => perbaruiScene(scene.id, { overlayId: o.id })}
+                  className={cn(
+                    'rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                    scene.overlayId === o.id ? 'border-violet-400 bg-violet-500/15 text-violet-200' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500',
+                  )}
+                  title={o.deskripsi}
+                >
+                  {o.nama}
+                </button>
+              ))}
             </div>
           </div>
 

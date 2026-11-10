@@ -1,9 +1,39 @@
 # PROGRES wokCam — Prototype Web
 
-> Diperbarui: 10 November 2026 · Versi repo: **v0.2.0 — "Editor Timeline Baru"**
+> Diperbarui: 11 November 2026 · Versi repo: **v0.3.0 — "Gaya Video Referensi (Promo Tipografi Terang)"**
 > Tahap PRD: ② web prototype (logika siap dipindah ke Kotlin; tahap ③ kerangka app)
+> Riwayat versi per rilis: lihat [CHANGELOG.md](CHANGELOG.md)
 
 ## Yang sudah selesai
+
+### Gaya video referensi — promo tipografi terang (v0.3)
+- **Bedah video referensi user** (69 dtk, promo ala opencode/insiderforce): latar putih
+  dot-grid konsisten, teks muncul **kata-demi-kata** dengan penekanan campuran
+  (tebal hitam / italic abu), kartu mockup melayang miring, badge pill atas + tanda air
+  bawah persisten, transisi blur antar scene.
+- **Vocab baru**: gerakan animasi `kata` (tipe in — render khusus per-kata, bukan keyframe
+  blok) dan gerakan transisi `blur` (scene tua mengabur membesar, scene baru jernih dari
+  kabur). Prompt generator ikut menyebutkan vocab baru.
+- **Teks beranotasi**: penanda `**tebal**` dan `*miring*` di `scene.teks` diurai murni oleh
+  `uraiTeks()` (tanda baca menempel kata; penanda tak berpasangan dibiarkan literal) —
+  padanan Kotlin nanti: SpanStyle. Render: tebal = 1.12em hitam, miring = italic abu 62%.
+- **Kartu mengambang** (`scene.kartu`): mockup putih miring −2,5° dengan bayangan lembut +
+  kerangka UI (bar jendela, banner violet, baris abu) — pengganti screenshot video referensi;
+  melayang pelan saat diputar.
+- **Branding proyek**: `proyek.badge` (pill atas) + `proyek.watermark` (bawah) — tampil di
+  SEMUA scene dan tidak ikut transisi; diedit di Inspector bagian "Branding proyek";
+  serialisasi toleran (alias `lencana`/`tanda_air` diterima, nilai invalid → null).
+- **Latar baru `kertas-grid`**: tekstur titik halus deterministik + flag `terang`
+  (dekorasi gelap default dilepas; gradien pembacaan stage juga dilepas di latar terang).
+- **PAKET_PROMO** (10 item: 4 animasi · 3 transisi · 3 style) — satu klik di Koleksi;
+  otomatis masuk koleksi saat proyek tutorial dimuat (idempoten).
+- **Proyek tutorial v2**: 8 scene tetap mengajarkan 6 langkah wokCam, kini BERGAYA VIDEO
+  REFERENSI — semua scene kertas-grid (konsistensi branding), overlay tetap berganti per
+  scene (8 overlay terpamerkan), 3 scene pakai kartu mengambang, badge "wokCam" + tanda air
+  "@wokcam", animasi masuk dominan kata-demi-kata, transisi blur.
+- **PanduanEditor 11 langkah**: tambah langkah Branding (badge & tanda air); langkah style
+  kini menjelaskan penanda tebal/miring + animasi kata-demi-kata.
+- **Label "wokCam" pojok pratinjau dihapus** — digantikan tanda air proyek yang bisa diedit.
 
 ### Generator & Koleksi (v0.1)
 - Parser naskah toleran: `=== SCENE n ===`, field digabung satu baris, markdown dibersihkan,
@@ -34,7 +64,9 @@
   ekspor TSV `SHEET_COLUMNS`, tab-tab editor lama, engine/model lama.
 
 ### Kualitas
-- **284 uji regresi di 8 rangkaian** (bun) — semuanya lulus; `tsc` bersih.
+- **430 uji regresi di 10 rangkaian** (bun) — semuanya lulus; `tsc` bersih. Rangkaian baru:
+  `test-tutorial.ts` (68 — kontrak tutorial v2) dan `test-promo-style.ts` (56 — vocab kata/blur,
+  uraiTeks, polaAnimasiKata, transisi blur, kertas-grid, badge/watermark/kartu).
 - Fungsi model timeline murni (tanpa React) supaya mudah diuji & diporting ke Kotlin.
 
 ## Yang masih bermasalah / keterbatasan
@@ -50,11 +82,15 @@
 5. **Uji #6 (proyek kuantum 48 scene) belum divalidasi otomatis** secara end-to-end di editor.
 6. **Font pratinjau = pendekatan web** (kelas font menyerupai), bukan font asli — di Kotlin nanti
    memakai font asli.
-7. **Latar pratinjau = gradien mood** + label kata kunci — belum ada gambar stok/AI nyata
-   (LATAR baru berupa kata kunci pencarian).
+7. **Latar pratinjau = gradien/tekstur CSS** + label kata kunci — belum ada gambar stok/AI nyata
+   (LATAR baru berupa kata kunci pencarian); kartu mengambang juga masih mockup CSS, bukan
+   gambar nyata.
 8. **Satu slot proyek** — `wokcam.proyek.v1` hanya menyimpan proyek aktif; belum ada daftar
    multi-proyek.
 9. Kilat kecil saat hidrasi: proyek contoh tampil sejenak sebelum proyek tersimpan dimuat.
+10. **Animasi kata-demi-kata dimainkan ulang dari awal scene** saat seek — pratinjau ok, tapi
+   belum mengikuti posisi playhead di tengah reveal (perbaikan kecil nanti di Kotlin: offset
+   delay dari waktu scene).
 
 ## Rencana berikutnya (urutan usulan)
 

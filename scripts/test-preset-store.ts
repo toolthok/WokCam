@@ -1,3 +1,4 @@
+/// <reference types="bun-types" />
 /* ═══ Test regresi: Koleksi Style (src/lib/preset-store.ts) ═══
  * Jalankan: bun scripts/test-preset-store.ts
  * Mencakup: impor paket asli user (paket-in-horror.json), dedupe, validasi toleran,

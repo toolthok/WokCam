@@ -41,10 +41,12 @@ const LANGKAH_REKAM = [
 export function ExportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const judul = useEditor((s) => s.judul)
   const rasio = useEditor((s) => s.rasio)
+  const badge = useEditor((s) => s.badge)
+  const watermark = useEditor((s) => s.watermark)
   const scenes = useEditor((s) => s.scenes)
   const [tersalin, setTersalin] = useState(false)
 
-  const proyek: Proyek = useMemo(() => ({ version: 1, judul, rasio, scenes }), [judul, rasio, scenes])
+  const proyek: Proyek = useMemo(() => ({ version: 1, judul, rasio, badge, watermark, scenes }), [judul, rasio, badge, watermark, scenes])
   const json = useMemo(() => proyekKeJSON(proyek), [proyek])
   const total = totalDurasi(scenes)
 

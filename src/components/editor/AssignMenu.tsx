@@ -155,18 +155,35 @@ export function AssignMenu({
   );
 }
 
-/** Tombol pemicu kecil untuk toolbar timeline. */
-export function TombolAssign({ label, terpasang, className }: { label: string; terpasang: string | null; className?: string }) {
+/** Tombol pemicu kecil untuk toolbar timeline.
+ *  WAJIB meneruskan ...props: Radix PopoverTrigger asChild menyematkan onClick/
+ *  aria-* ke komponen ini via Slot — kalau dibuang (versi lama), tombol toolbar
+ *  sama sekali tidak bisa diklik (bug yang bikin user bingung "cara pakainya").
+ *  Elemen akhirnya <button> asli agar aksesibel. */
+export function TombolAssign({
+  label,
+  terpasang,
+  className,
+  ...props
+}: {
+  label: string;
+  terpasang: string | null;
+  className?: string;
+} & React.ComponentProps<"button">) {
   return (
-    <span className={cn(
-      "flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-semibold transition-colors",
-      terpasang
-        ? "border-violet-500/50 bg-violet-500/10 text-violet-200"
-        : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800",
-      className,
-    )}>
+    <button
+      type="button"
+      className={cn(
+        "flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-semibold transition-colors",
+        terpasang
+          ? "border-violet-500/50 bg-violet-500/10 text-violet-200"
+          : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800",
+        className,
+      )}
+      {...props}
+    >
       {label}
       {terpasang ? <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_6px_#a78bfa]" /> : <ChevronDown className="h-3 w-3 opacity-70" />}
-    </span>
+    </button>
   );
 }

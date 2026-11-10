@@ -197,3 +197,21 @@
   from { transform: scale(1.1) translateY(-3.2%); }
   to { transform: scale(1.1) translateY(3.2%); }
 }
+
+/* Keyframes overlay wokCam */
+/* garis progres video di tepi bawah scene (durasi = panjang scene) */
+@keyframes wokcam-progres {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+/* titik bokeh melayang pelan (alternate, durasi via style inline) */
+@keyframes wokcam-melayang {
+  from { transform: translateY(0); }
+  to { transform: translateY(-9px); }
+}
+.wokcam-melayang {
+  animation-name: wokcam-melayang;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  animation-timing-function: ease-in-out;
+}

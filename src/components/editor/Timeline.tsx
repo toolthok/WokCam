@@ -14,20 +14,29 @@
  *   supaya gampang dipindah ke GestureDetector di app Kotlin.
  */
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { Copy, Plus, Scissors, Trash2, Type, Undo2, Redo2, Volume2, Film, X } from 'lucide-react'
+import { Fragment, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { Copy, GraduationCap, Play, Plus, RotateCcw, Scissors, Trash2, Type, Undo2, Redo2, Volume2, Film, X } from 'lucide-react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useEditor } from '@/lib/editor/store'
 import { AssignMenu, TombolAssign } from '@/components/editor/AssignMenu'
+import { PickerKatalog } from '@/components/editor/PickerKatalog'
+import { koleksiStore } from '@/lib/preset-store'
 import {
   clampDurasi,
   fmtDurasi,
   fmtJam,
   gelombangSuara,
-  gradientMood,
+  kelasLatar,
+  latarDariId,
+  overlayDariId,
   hitungTiming,
+  JUDUL_TUTORIAL,
+  LATAR_PRESET,
+  OVERLAY_PRESET,
+  sceneIndexDiWaktu,
   totalDurasi,
+  transisiDiWaktu,
 } from '@/lib/editor/proyek'
 import { MOODS } from '@/lib/naskah-parser'
 import { cn } from '@/lib/utils'
@@ -46,6 +55,7 @@ export function Timeline() {
   const time = useEditor((s) => s.time)
   const playing = useEditor((s) => s.playing)
   const zoom = useEditor((s) => s.zoom)
+  const judul = useEditor((s) => s.judul)
   const undoTumpuk = useEditor((s) => s.undoTumpuk.length)
   const redoTumpuk = useEditor((s) => s.redoTumpuk.length)
   const hydrasiSelesai = useEditor((s) => s.hydrasiSelesai)
@@ -61,15 +71,24 @@ export function Timeline() {
   const terapkanAnimasi = useEditor((s) => s.terapkanAnimasi)
   const terapkanTransisi = useEditor((s) => s.terapkanTransisi)
   const terapkanStyle = useEditor((s) => s.terapkanStyle)
+  const terapkanLatar = useEditor((s) => s.terapkanLatar)
+  const terapkanOverlay = useEditor((s) => s.terapkanOverlay)
+  const mintaPanduan = useEditor((s) => s.mintaPanduan)
   const setTime = useEditor((s) => s.setTime)
   const setZoom = useEditor((s) => s.setZoom)
+  const togglePlay = useEditor((s) => s.togglePlay)
+  const muatTutorial = useEditor((s) => s.muatTutorial)
   const undo = useEditor((s) => s.undo)
   const redo = useEditor((s) => s.redo)
+  const koleksi = useSyncExternalStore(koleksiStore.subscribe, koleksiStore.getSnapshot, koleksiStore.getServerSnapshot)
 
   /* ── state drag & trim (lokal UI) ── */
   const [geser, setGeser] = useState<GeserState | null>(null)
   const [potong, setPotong] = useState<PotongState | null>(null)
   const [editId, setEditId] = useState<string | null>(null)
+  /* banner ditutup per judul proyek — ganti/muat ulang proyek lain menampilkannya lagi
+   * tanpa perlu setState di dalam effect (pola "adjust state during render") */
+  const [tutupPada, setTutupPada] = useState<string | null>(null)
 
   const seretRef = useRef<{ id: string; dari: number; startX: number; jalan: boolean } | null>(null)
   const potongRef = useRef<{ id: string; durasi0: number; startX: number } | null>(null)
@@ -92,16 +111,26 @@ export function Timeline() {
     return sisa
   }, [scenes, geser])
   const posisiTampil = useMemo(() => {
+    const out: { i: number; mulai: number; dur: number }[] = []
     let acc = 0
-    return urutanTampil.map((i) => {
-      const p = { i, mulai: acc, dur: durasiTampil[i] }
+    for (const i of urutanTampil) {
+      out.push({ i, mulai: acc, dur: durasiTampil[i] })
       acc += durasiTampil[i]
-      return p
-    })
+    }
+    return out
   }, [urutanTampil, durasiTampil])
   const totalTampil = useMemo(() => (geser || potong ? posisiTampil.reduce((a, p) => a + p.dur, 0) : totalDurasi(scenes)), [posisiTampil, geser, potong, scenes])
   const total = totalDurasi(scenes)
   const contentW = Math.max(totalTampil * zoom + 56, 340)
+
+  /* ── keadaan hidup: scene aktif, progres di dalam blok, transisi yang sedang jalan ──
+   * Inilah yang membuat timeline terasa "keren": blok scene terisi violet saat
+   * playhead melintas, chip ⚡ menyala di titik transisi, strip mood berdenyut. */
+  const segsNyata = useMemo(() => hitungTiming(scenes), [scenes])
+  const indeksAktif = sceneIndexDiWaktu(segsNyata, time)
+  const segAktif = segsNyata[indeksAktif] ?? null
+  const transAktif = useMemo(() => transisiDiWaktu(scenes, koleksi, time), [scenes, koleksi, time])
+  const proyekTutorialAktif = judul === JUDUL_TUTORIAL && tutupPada !== judul
 
   /* ── auto-follow playhead saat memutar ── */
   useEffect(() => {
@@ -217,6 +246,45 @@ export function Timeline() {
 
   return (
     <section className="shrink-0 border-t bg-zinc-950/85 max-lg:h-[300px]" aria-label="Timeline">
+      {/* banner tutorial — timeline = contoh video terbaik sekaligus panduan pakai wokCam */}
+      {proyekTutorialAktif && (
+        <div className="flex items-center gap-2 border-b border-violet-500/30 bg-gradient-to-r from-violet-600/25 via-fuchsia-600/10 to-transparent px-3 py-2">
+          <GraduationCap className="h-4 w-4 shrink-0 text-violet-300" />
+          <p className="min-w-0 flex-1 text-[11px] leading-snug text-zinc-300">
+            <span className="font-bold text-violet-200">Proyek ini contoh video terbaik sekaligus tutorial.</span>{' '}
+            Tekan Putar, ikuti 8 scene-nya belajar alur wokCam — lalu tiru atau edit bebas: klik-dua-kali blok, seret urutan, chip ⚡.
+          </p>
+          <button
+            onClick={() => { setTime(0); togglePlay() }}
+            className="flex shrink-0 items-center gap-1 rounded-md bg-violet-600 px-2.5 py-1 text-[11px] font-bold text-white shadow shadow-violet-950/50 transition hover:bg-violet-500"
+          >
+            <Play className="h-3 w-3" /> Putar
+          </button>
+          <button
+            onClick={mintaPanduan}
+            title="Buka tur interaktif: cara pakai editing di timeline"
+            className="flex shrink-0 items-center gap-1 rounded-md border border-violet-500/60 bg-violet-500/10 px-2.5 py-1 text-[11px] font-bold text-violet-200 transition hover:bg-violet-500/20"
+          >
+            <GraduationCap className="h-3 w-3" /> Cara pakai
+          </button>
+          <button
+            onClick={muatTutorial}
+            title="Kembalikan proyek tutorial dari awal"
+            aria-label="Muat ulang proyek tutorial"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-zinc-700 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setTutupPada(judul)}
+            aria-label="Tutup catatan tutorial"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* header */}
       <div className="flex h-9 items-center gap-2 border-b px-3">
         <span className="text-xs font-semibold text-zinc-300">Timeline</span>
@@ -293,9 +361,11 @@ export function Timeline() {
 
         {terpilih && (
           <>
-            <AssignMenu jenis="in" terpasang={terpilih.animIn} onPilih={(n) => terapkanAnimasi('in', n, terpilih.id)}>
-              <TombolAssign label="Masuk" terpasang={terpilih.animIn} />
-            </AssignMenu>
+            <span data-tour="toolbar-anim" className="flex items-center">
+              <AssignMenu jenis="in" terpasang={terpilih.animIn} onPilih={(n) => terapkanAnimasi('in', n, terpilih.id)}>
+                <TombolAssign label="Masuk" terpasang={terpilih.animIn} />
+              </AssignMenu>
+            </span>
             <AssignMenu jenis="loop" terpasang={terpilih.animLoop} onPilih={(n) => terapkanAnimasi('loop', n, terpilih.id)}>
               <TombolAssign label="Loop" terpasang={terpilih.animLoop} />
             </AssignMenu>
@@ -305,9 +375,19 @@ export function Timeline() {
             <AssignMenu jenis="transisi" terpasang={terpilih.transisi} onPilih={(n) => terapkanTransisi(n, terpilih.id)}>
               <TombolAssign label="Transisi→" terpasang={terpilih.transisi} />
             </AssignMenu>
-            <AssignMenu jenis="style" terpasang={terpilih.style} onPilih={(n) => terapkanStyle(n, terpilih.id)}>
-              <TombolAssign label="Style" terpasang={terpilih.style} />
-            </AssignMenu>
+            <span data-tour="toolbar-style" className="flex items-center">
+              <AssignMenu jenis="style" terpasang={terpilih.style} onPilih={(n) => terapkanStyle(n, terpilih.id)}>
+                <TombolAssign label="Style" terpasang={terpilih.style} />
+              </AssignMenu>
+            </span>
+            <span data-tour="toolbar-latar" className="flex items-center">
+              <PickerKatalog jenis="latar" nilai={terpilih.latarPreset} moodScene={terpilih.mood} onPilih={(id) => terapkanLatar(id, terpilih.id)}>
+                <TombolAssign label="Latar" terpasang={terpilih.latarPreset} />
+              </PickerKatalog>
+            </span>
+            <PickerKatalog jenis="overlay" nilai={terpilih.overlayId} onPilih={(id) => terapkanOverlay(id, terpilih.id)}>
+              <TombolAssign label="Overlay" terpasang={terpilih.overlayId} />
+            </PickerKatalog>
           </>
         )}
 
@@ -367,6 +447,9 @@ export function Timeline() {
                 const sedangPotong = potong?.id === s.id
                 const lebarPx = Math.max(10, p.dur * zoom - 2)
                 const sempit = lebarPx < 74
+                const aktif = p.i === indeksAktif
+                const progres = aktif && segAktif ? Math.min(1, Math.max(0, (time - segAktif.mulai) / segAktif.dur)) : null
+                const hidup = aktif && playing
                 return (
                   <Fragment key={s.id}>
                   <Popover open={editId === s.id} onOpenChange={(v) => { if (!v) setEditId(null) }}>
@@ -384,7 +467,9 @@ export function Timeline() {
                       'absolute bottom-1 top-1 cursor-grab overflow-hidden rounded-md border text-left active:cursor-grabbing',
                       sel ? 'border-violet-400 ring-1 ring-violet-400/60' : 'border-zinc-700/70 hover:border-zinc-500',
                       sedangGeser && 'z-20 opacity-90 shadow-xl shadow-black/60',
+                      hidup && 'border-violet-300 ring-1 ring-violet-400/70 shadow-[0_0_18px_rgba(167,139,250,0.35)]',
                     )}
+                    data-tour="blok-scene"
                     style={{
                       left: p.mulai * zoom + 1,
                       width: lebarPx,
@@ -393,7 +478,7 @@ export function Timeline() {
                     title={`Scene ${p.i + 1} · ${s.mood} · ${fmtDurasi(s.durasi)}s — seret untuk urutkan, klik-dua-kali untuk edit`}
                   >
                     <div className="absolute inset-0 flex">
-                      <div className={cn('h-full w-8 shrink-0 bg-gradient-to-br', gradientMood(s.mood))} />
+                      <div className={cn('h-full w-8 shrink-0 bg-gradient-to-br', kelasLatar(s.latarPreset, s.mood), hidup && 'animate-pulse')} title={latarDariId(s.latarPreset)?.nama ?? `mood: ${s.mood}`} />
                       <div className="min-w-0 flex-1 bg-zinc-900/80 px-1.5 py-1">
                         <div className="flex items-baseline gap-1">
                           <span className={cn('text-[10px] font-semibold', sel ? 'text-violet-200' : 'text-zinc-300')}>
@@ -407,6 +492,7 @@ export function Timeline() {
                             {s.animLoop && <span data-dot className="h-1.5 w-1.5 rounded-full bg-sky-400" title={`Loop: ${s.animLoop}`} />}
                             {s.animOut && <span data-dot className="h-1.5 w-1.5 rounded-full bg-amber-400" title={`Animasi keluar: ${s.animOut}`} />}
                             {s.style && <span data-dot className="h-1.5 w-1.5 rounded-full bg-fuchsia-400" title={`Style: ${s.style}`} />}
+                            {s.overlayId && <span data-dot className="h-1.5 w-1.5 rounded-full bg-rose-400" title={`Overlay: ${overlayDariId(s.overlayId)?.nama ?? s.overlayId}`} />}
                             {s.transisi && <span data-dot className="h-1.5 w-1.5 rounded-full bg-emerald-400" title={`Transisi: ${s.transisi}`} />}
                           </span>
                         </div>
@@ -415,9 +501,17 @@ export function Timeline() {
                         )}
                       </div>
                     </div>
+                    {/* progres playhead di dalam blok — bar violet menyusuruh blok aktif */}
+                    {progres !== null && (
+                      <>
+                        <div className="pointer-events-none absolute inset-y-0 left-0 bg-violet-400/15" style={{ width: `${Math.round(progres * 100)}%` }} />
+                        <div className="pointer-events-none absolute bottom-0 left-0 h-[3px] bg-gradient-to-r from-violet-500 to-fuchsia-400" style={{ width: `${Math.round(progres * 100)}%` }} />
+                      </>
+                    )}
                     {/* handle trim tepi kanan (bagian ATAS — bawah sengaja dibiarkan untuk chip transisi) */}
                     <div
                       data-handle
+                      data-tour="handle-durasi"
                       onPointerDown={(e) => onHandlePointerDown(e, s.id, s.durasi)}
                       onPointerMove={onHandlePointerMove}
                       onPointerUp={onHandlePointerUp}
@@ -463,7 +557,13 @@ export function Timeline() {
                       autoFocus
                       value={s.teks}
                       onChange={(e) => ubahSceneEdit(s.id, { teks: e.target.value })}
-                      placeholder="Teks di layar (maks 8 kata)"
+                      placeholder="Teks di layar (maks 8 kata) — **tebal** / *miring* boleh"
+                      className="mb-2 w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs text-zinc-100 outline-none focus:border-violet-500"
+                    />
+                    <input
+                      value={s.kartu ?? ''}
+                      onChange={(e) => ubahSceneEdit(s.id, { kartu: e.target.value || null })}
+                      placeholder="Kartu mengambang (mis. ChatGPT) — kosong = tanpa"
                       className="mb-2 w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs text-zinc-100 outline-none focus:border-violet-500"
                     />
                     <textarea
@@ -502,8 +602,40 @@ export function Timeline() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Select
+                        value={s.latarPreset ?? 'auto'}
+                        onValueChange={(v) => ubahSceneEdit(s.id, { latarPreset: v === 'auto' ? null : v })}
+                      >
+                        <SelectTrigger className="h-7 flex-1 text-[11px]" aria-label="Latar scene">
+                          <SelectValue placeholder="Latar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">Latar: otomatis (mood)</SelectItem>
+                          {LATAR_PRESET.map((l) => (
+                            <SelectItem key={l.id} value={l.id}>Latar: {l.nama}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Select
+                        value={s.overlayId ?? 'tanpa'}
+                        onValueChange={(v) => ubahSceneEdit(s.id, { overlayId: v === 'tanpa' ? null : v })}
+                      >
+                        <SelectTrigger className="h-7 flex-1 text-[11px]" aria-label="Overlay scene">
+                          <SelectValue placeholder="Overlay" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="tanpa">Overlay: tanpa</SelectItem>
+                          {OVERLAY_PRESET.map((o) => (
+                            <SelectItem key={o.id} value={o.id}>Overlay: {o.nama}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <p className="mt-2 text-[10px] text-zinc-500">
-                      Perubahan langsung tersimpan · Esc untuk tutup
+                      Perubahan langsung tersimpan · Esc untuk tutup · tarik tepi kanan blok = durasi
                     </p>
                   </PopoverContent>
                   </Popover>
@@ -518,8 +650,10 @@ export function Timeline() {
                 const pemilik = scenes[p.i]
                 if (!pemilik) return null
                 const x = (p.mulai + p.dur) * zoom
+                const chipHidup = transAktif !== null && scenes[transAktif.indexA]?.id === pemilik.id
                 return (
                   <div key={`chip-${pemilik.id}`} className="absolute z-20" style={{ left: x - 9, top: H_VIDEO - 9 }} data-chip>
+                    <div data-tour="chip-transisi" className="pointer-events-none absolute inset-0 -m-1 rounded-full" aria-hidden />
                     <AssignMenu
                       jenis="transisi"
                       terpasang={pemilik.transisi}
@@ -532,6 +666,7 @@ export function Timeline() {
                           pemilik.transisi
                             ? 'border-emerald-400/70 bg-emerald-500/25 text-emerald-200'
                             : 'border-dashed border-zinc-600 bg-zinc-900/90 text-zinc-500 hover:border-emerald-400/60 hover:text-emerald-300',
+                          chipHidup && 'animate-pulse scale-150 border-emerald-200 bg-emerald-400/60 text-white shadow-[0_0_14px_rgba(52,211,153,0.8)]',
                         )}
                         title={pemilik.transisi ? `Transisi: ${pemilik.transisi}` : 'Tanpa transisi — klik untuk memilih'}
                         aria-label={`Transisi antara scene ${p.i + 1} dan ${berikut.i + 1}`}
@@ -549,6 +684,7 @@ export function Timeline() {
               {posisiTampil.map((p) => {
                 const s = scenes[p.i]
                 if (!s) return null
+                const gaya = s.style ? koleksi.styles.find((st) => st.nama === s.style) ?? null : null
                 return (
                   <div
                     key={`t-${s.id}`}
@@ -557,9 +693,9 @@ export function Timeline() {
                     title={`Teks layar: ${s.teks || '(kosong)'}`}
                   >
                     <span
-                      className="h-2 w-2 shrink-0 rounded-full border border-black/40"
-                      style={{ background: s.style ? undefined : '#e4e4e7' }}
-                      title={s.style ? `Style: ${s.style}` : 'Style bawaan'}
+                      className="h-2 w-2 shrink-0 rounded-full border border-white/30"
+                      style={{ background: gaya ? gaya.warna_teks : '#e4e4e7' }}
+                      title={s.style ? `Style: ${s.style} (warna teks ${gaya?.warna_teks ?? '-'})` : 'Style bawaan'}
                     />
                     <span className="truncate text-[9px] italic text-zinc-400">
                       {s.teks ? `"${s.teks}"` : '(teks kosong — klik-dua-kali blok untuk mengisi)'}

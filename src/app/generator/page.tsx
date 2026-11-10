@@ -10,10 +10,10 @@ import { PratinjauBersih } from "@/components/preset-preview";
 /* ══════════ Konstanta kontrak (sumber tunggal, akan dipindah ke Kotlin) ══════════ */
 
 const GERAKAN: Record<string, string[]> = {
-  in: ["fade", "slide", "zoom", "bounce", "wipe"],
+  in: ["fade", "slide", "zoom", "bounce", "wipe", "kata"],
   out: ["fade", "slide", "zoom", "shrink", "wipe"],
   loop: ["none", "zoom_in", "zoom_out", "pan_kiri", "pan_kanan", "pan_atas", "pan_bawah"],
-  transisi: ["none", "crossfade", "slide", "wipe", "zoom", "flip"],
+  transisi: ["none", "crossfade", "slide", "wipe", "zoom", "flip", "blur"],
 };
 const ARAH = ["atas", "bawah", "kiri", "kanan"];
 const EASING = ["linear", "ease_in", "ease_out", "ease_in_out", "spring"];

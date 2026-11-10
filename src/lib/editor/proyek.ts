@@ -9,6 +9,9 @@
  *       animIn / animOut / animLoop → koleksi.presets (tipe in | out | loop)
  *       transisi                    → koleksi.transitions (dipasang di BATAS ke scene berikutnya)
  *       style                       → koleksi.styles (gaya teks di layar)
+ *     ditambah HIASAN TAMPILAN (dulu terlupakan, kini bagian resmi kontrak):
+ *       latarPreset → katalog LATAR_PRESET (tema latar belakang; null = otomatis dari mood)
+ *       overlayId   → katalog OVERLAY_PRESET (efek di atas video; null = tanpa)
  *   - Semua fungsi di sini MURNI (tanpa React/zustand) supaya gampang diuji bun dan
  *     dipindah ke Kotlin hampir baris-per-baris.
  *
@@ -24,11 +27,15 @@ import { koleksiStore, type Koleksi } from "@/lib/preset-store";
 export type SceneProyek = {
   id: string;
   naskah: string; // dibacakan TTS
-  teks: string; // tampil di layar
+  teks: string; // tampil di layar (boleh beranotasi: **tebal** / *miring*)
   durasi: number; // detik, 2-15 langkah 0,5 (kontrak DURASI)
   mood: string; // salah satu MOODS
-  latarId: string; // kata kunci gambar Indonesia
-  latarEn: string; // kata kunci Inggris (pencarian stok)
+  latarId: string; // kata kunci gambar Indonesia dari naskah AI (dipakai app Kotlin utk stok)
+  latarEn: string; // kata kunci Inggris dari naskah AI (dipakai app Kotlin utk stok)
+  /* hiasan tampilan — id dari katalog bawaan proyek ini (bukan koleksi user) */
+  latarPreset: string | null; // id LATAR_PRESET — tema latar belakang; null = otomatis (gradien mood)
+  overlayId: string | null; // id OVERLAY_PRESET — lapisan efek di atas video; null = tanpa
+  kartu: string | null; // judul KARTU MENGAMBANG ala mockup (gaya video referensi); null = tanpa
   /* assignment nama preset koleksi — null = belum diatur / tanpa */
   animIn: string | null;
   animOut: string | null;
@@ -41,6 +48,10 @@ export type Proyek = {
   version: 1;
   judul: string;
   rasio: string; // "9:16" | "1:1" | "16:9"
+  /* BRANDING persisten ala video referensi: badge pill di atas + tanda air di bawah,
+   * tampil di SEMUA scene dan TIDAK ikut transisi (tetap diam saat scene berganti). */
+  badge: string | null; // teks pill atas (mis. nama brand); null = tanpa
+  watermark: string | null; // teks kecil bawah (mis. @handle); null = tanpa
   scenes: SceneProyek[];
 };
 
@@ -75,6 +86,65 @@ export function idBaru(): string {
   return `sc-${seq}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+/* ── Katalog LATAR & OVERLAY (yang dulu terlupakan, kini resmi) ═══
+ * LATAR: tema latar belakang per scene. Di prototype = gradien CSS; di app Kotlin
+ * nanti `kataKunciEn` dipakai mencari gambar stok/AI sesuai kata kunci naskah.
+ * null = "Otomatis" → gradien mengikuti mood scene (MOOD_GRADIENT).
+ * OVERLAY: lapisan efek di ATAS video (teks & latar tetap di bawahnya). Semua
+ * direalisasikan CSS murni + deterministik supaya gampang direplikasi di Compose.
+ * Kedua katalog BAWAAN APLIKASI (bukan koleksi user) — sama seperti MOODS. */
+
+export type LatarPreset = {
+  id: string;
+  nama: string;
+  kelas: string;
+  kataKunciEn: string;
+  tekstur?: "grid" | null; // pola titik halus (gaya video referensi "paper grid")
+  terang?: boolean; // latar terang → dekorasi gelap default dimatikan (teks gelap tetap terbaca)
+};
+
+export const LATAR_PRESET: LatarPreset[] = [
+  { id: "malam-neon", nama: "Malam Neon", kelas: "from-fuchsia-600 via-purple-800 to-zinc-950", kataKunciEn: "neon city night" },
+  { id: "senja-jogja", nama: "Senja Jogja", kelas: "from-amber-400 via-rose-600 to-purple-900", kataKunciEn: "tropical sunset" },
+  { id: "pagi-bening", nama: "Pagi Bening", kelas: "from-sky-300 via-emerald-300 to-teal-600", kataKunciEn: "calm morning sky" },
+  { id: "sawah-emerald", nama: "Sawah Emerald", kelas: "from-emerald-400 via-green-700 to-emerald-950", kataKunciEn: "green rice terrace" },
+  { id: "laut-dalam", nama: "Laut Dalam", kelas: "from-blue-800 via-indigo-950 to-black", kataKunciEn: "deep ocean dark" },
+  { id: "hutan-kabut", nama: "Hutan Kabut", kelas: "from-emerald-800 via-teal-900 to-zinc-950", kataKunciEn: "misty forest" },
+  { id: "studio-gelap", nama: "Studio Gelap", kelas: "from-zinc-700 via-zinc-900 to-black", kataKunciEn: "dark studio backdrop" },
+  { id: "kertas-terang", nama: "Kertas Terang", kelas: "from-zinc-100 via-zinc-200 to-zinc-400", kataKunciEn: "minimal paper texture", terang: true },
+  { id: "kertas-grid", nama: "Kertas Grid", kelas: "from-zinc-100 via-zinc-200 to-zinc-300", kataKunciEn: "minimal dotted grid paper background", tekstur: "grid", terang: true },
+  { id: "lava-dramatis", nama: "Lava Dramatis", kelas: "from-red-600 via-rose-900 to-zinc-950", kataKunciEn: "dramatic red smoke" },
+  { id: "ungu-kuantum", nama: "Ungu Kuantum", kelas: "from-violet-500 via-violet-900 to-fuchsia-950", kataKunciEn: "abstract purple gradient" },
+];
+
+export function latarDariId(id: string | null): LatarPreset | null {
+  if (!id) return null;
+  return LATAR_PRESET.find((l) => l.id === id) ?? null;
+}
+
+/** Kelas gradien latar scene: preset dipilih → kelasnya; selain itu gradien mood. */
+export function kelasLatar(latarPreset: string | null, mood: string): string {
+  return latarDariId(latarPreset)?.kelas ?? gradientMood(mood);
+}
+
+export type OverlayPreset = { id: string; nama: string; deskripsi: string };
+
+export const OVERLAY_PRESET: OverlayPreset[] = [
+  { id: "vignette", nama: "Vinyet Sinema", deskripsi: "tepi gelap, fokus ke tengah" },
+  { id: "grain", nama: "Butiran Film", deskripsi: "tekstur film analog halus" },
+  { id: "letterbox", nama: "Bar Sinema", deskripsi: "hitam atas-bawah ala bioskop" },
+  { id: "light-leak", nama: "Sorot Cahaya", deskripsi: "pendar hangat dari sudut" },
+  { id: "bokeh", nama: "Bintik Bokeh", deskripsi: "titik cahaya melayang" },
+  { id: "lower-third", nama: "Strip Bawah", deskripsi: "area gelap agar teks terbaca" },
+  { id: "haze", nama: "Kabut Lembut", deskripsi: "kabut tipis merambat dari bawah" },
+  { id: "progress", nama: "Progres Video", deskripsi: "garis kemajuan di tepi bawah" },
+];
+
+export function overlayDariId(id: string | null): OverlayPreset | null {
+  if (!id) return null;
+  return OVERLAY_PRESET.find((o) => o.id === id) ?? null;
+}
+
 /** Latar warna contoh per mood — pengganti visual stok di prototype (app asli pakai gambar). */
 export const MOOD_GRADIENT: Record<string, string> = {
   tenang: "from-teal-500 via-emerald-600 to-teal-800",
@@ -93,6 +163,59 @@ export function gradientMood(mood: string): string {
 export function moodAman(mood: string): string {
   const v = mood.trim().toLowerCase();
   return (MOODS as readonly string[]).includes(v) ? v : "fokus";
+}
+
+/* ── Teks beranotasi (gaya video referensi: penekanan campuran dalam satu blok) ═══
+ * Penanda ringan: **kata** = tebal (hitam pekat, sedikit lebih besar), *kata* = miring
+ * (abu — kata kunci). Tanpa penanda = normal. Murni string → mudah diuji & portabel;
+ * di app Kotlin nanti parser yang sama menghasilkan SpanStyle. */
+
+export type SegmenKata = { kata: string; gaya: "normal" | "tebal" | "miring" };
+
+/** Urai teks beranotasi jadi daftar kata + gaya. Penanda tak berpasangan dibiarkan literal. */
+export function uraiTeks(teks: string): SegmenKata[] {
+  const hasil: SegmenKata[] = [];
+  /* pecah dulu per segmen beranotasi (** ... lebih diutamakan daripada * ...), lalu tiap
+   * segmen dipecah jadi kata — gaya menempel ke SEMUA kata dalam segmen itu */
+  const bagian = teks.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  for (const bag of bagian) {
+    if (!bag) continue;
+    let gaya: SegmenKata["gaya"] = "normal";
+    let isi = bag;
+    if (/^\*\*[^*]+\*\*$/.test(bag)) {
+      gaya = "tebal";
+      isi = bag.slice(2, -2);
+    } else if (/^\*[^*]+\*$/.test(bag)) {
+      gaya = "miring";
+      isi = bag.slice(1, -1);
+    }
+    for (const kata of isi.split(/\s+/)) {
+      if (kata) hasil.push({ kata, gaya });
+    }
+  }
+  /* tanda baca yang lepas dari penanda (mis. "**pratinjau**,") tidak boleh jadi kata
+   * sendiri — tempel ke kata sebelumnya (atau berikutnya bila di awal) dan ikuti gayanya */
+  const hanyaTanda = /^[^\p{L}\p{N}]+$/u;
+  for (let i = hasil.length - 1; i >= 0; i--) {
+    if (!hanyaTanda.test(hasil[i].kata)) continue;
+    if (i > 0) {
+      hasil[i - 1].kata += hasil[i].kata;
+      hasil.splice(i, 1);
+    } else if (hasil.length > 1) {
+      hasil[1].kata = hasil[i].kata + hasil[1].kata;
+      hasil.splice(i, 1);
+    }
+  }
+  return hasil;
+}
+
+/** Teks tanpa penanda — untuk hitung kata VO/layar dan tampilan ringkas di timeline. */
+export function teksTanpaMarker(teks: string): string {
+  return teks
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /* ── Timing ═══ */
@@ -215,6 +338,9 @@ export function sceneKosong(index: number): SceneProyek {
     mood,
     latarId: "",
     latarEn: "",
+    latarPreset: null,
+    overlayId: null,
+    kartu: null,
     animIn: null,
     animOut: null,
     animLoop: null,
@@ -235,6 +361,9 @@ export function dariHasilNaskah(hasil: HasilNaskah): SceneProyek[] {
     mood: moodAman(sc.mood),
     latarId: sc.latarId,
     latarEn: sc.latarEn,
+    latarPreset: null,
+    overlayId: null,
+    kartu: null,
     animIn: null,
     animOut: null,
     animLoop: null,
@@ -248,49 +377,107 @@ export function dariNaskahMentah(raw: string): SceneProyek[] {
   return dariHasilNaskah(parseNaskah(raw, null));
 }
 
-/* Naskah contoh — juga bukti parser: format === SCENE === ditempel persis seperti hasil AI. */
-export const NASKAH_CONTOH = `=== SCENE 1 ===
-NASKAH: Kebanyakan orang gagal bukan karena malas, tapi karena urutan pagi mereka salah.
-TEKS: Urutan pagimu salah
-DURASI: 6
-MOOD: fokus
-LATAR: meja kerja pagi jendela | EN: morning desk window
+/* ── Proyek tutorial: contoh video terbaik sekaligus panduan pakai wokCam ═══
+ * Pengganti "3 Kebiasaan Pagi": timeline yang dibuka user berisi SATU proyek utuh
+ * yang (1) matang secara craft — hook → langkah → CTA, mood bervariasi, ritme 2,4
+ * kata/dtk — dan (2) isinya MENGAJARKAN cara pakai wokCam (6 langkah alur kerja).
+ *
+ * V2 — TIRU GAYA VIDEO REFERENSI (promo tipografi terang ala opencode/insiderforce):
+ *   - Latar konsisten "Kertas Grid" di SEMUA scene (branding konsisten seperti video
+ *     referensi) + overlay yang BERGANTI tiap scene supaya ke-8 overlay tetap terpamerkan.
+ *   - TEKS beranotasi **tebal** / *miring* — penekanan campuran khas video referensi.
+ *   - animIn dominan "Kata Muncul Berturut" (kata-demi-kata) + kartu mengambang di
+ *     scene langkah (pengganti screenshot mockup video referensi).
+ *   - Transisi blur khas referensi; badge + tanda air persisten ala watermark.
+ * Semua nama preset dari PAKET_PROMO — diverifikasi scripts/test-tutorial.ts. */
+
+export const JUDUL_TUTORIAL = "Tutorial wokCam — 6 Langkah";
+export const BADGE_TUTORIAL = "wokCam";
+export const WATERMARK_TUTORIAL = "@wokcam";
+
+export const NASKAH_TUTORIAL = `=== SCENE 1 ===
+NASKAH: Ini wokCam, cara baru bikin video faceless tanpa wajah tanpa kamera. Enam langkah, semuanya dari HP.
+TEKS: Bikin **video faceless** *tanpa kamera* wokCam!
+DURASI: 7
+MOOD: energik
 
 === SCENE 2 ===
-NASKAH: Kebiasaan pertama, bangun dan jangan sentuh HP sepuluh menit pertama. Otakmu jauh lebih tenang.
-TEKS: 10 menit tanpa HP
-DURASI: 6
-MOOD: tenang
-LATAR: ponsel tergeletak di meja | EN: phone on desk
-
-=== SCENE 3 ===
-NASKAH: Kebiasaan kedua, tulis tiga target terpenting sebelum jam sembilan pagi.
-TEKS: Tulis 3 target
+NASKAH: Langkah satu, buka halaman Koleksi dan salin prompt bedah video yang tersedia di sana.
+TEKS: Langkah 1: **Salin** prompt bedah video
 DURASI: 6
 MOOD: fokus
-LATAR: buku jurnal dan pena | EN: journal notebook pen
+
+=== SCENE 3 ===
+NASKAH: Langkah dua, tempel prompt itu ke ChatGPT dan minta naskah lengkap dengan format scene.
+TEKS: Langkah 2: Tempel ke **ChatGPT**, minta naskah
+DURASI: 6
+MOOD: fokus
 
 === SCENE 4 ===
-NASKAH: Kebiasaan ketiga, gerakkan badan lima belas menit supaya fokus sepanjang hari.
-TEKS: Gerak 15 menit
-DURASI: 6
-MOOD: energik
-LATAR: orang olahraga pagi di rooftop | EN: morning workout rooftop
+NASKAH: Langkah tiga, salin JSON jawaban ChatGPT lalu impor ke Koleksi. Gabung tanpa hilang satu item.
+TEKS: Langkah 3: Impor **JSON** ke *koleksi* utuh
+DURASI: 7
+MOOD: fokus
 
 === SCENE 5 ===
-NASKAH: Simpan video ini lalu coba besok pagi, dan ikuti untuk tips lainnya.
-TEKS: Simpan & ikuti
-DURASI: 5
-MOOD: ceria
-LATAR: jari menekan tombol ikon | EN: hand pressing button icon`
+NASKAH: Langkah empat, tulis naskah di Generator, lalu tempel hasilnya ke sini. Scene terbentuk otomatis.
+TEKS: Langkah 4: Naskah jadi **scene** otomatis
+DURASI: 6.5
+MOOD: tenang
 
-/** Proyek demo awal (dipakai store saat localStorage kosong). */
-export function proyekContoh(): Proyek {
+=== SCENE 6 ===
+NASKAH: Langkah lima, hias tiap scene: seret urutan, pilih latar, overlay, animasi, dan gaya teks.
+TEKS: Langkah 5: Hias **timeline**, pasang *animasi* & latar
+DURASI: 6.5
+MOOD: ceria
+
+=== SCENE 7 ===
+NASKAH: Langkah enam, tekan putar untuk pratinjau. Kalau sudah pas, rekam layar dan langsung unggah.
+TEKS: Langkah 6: **Putar** pratinjau, *rekam* layar
+DURASI: 6.5
+MOOD: ceria
+
+=== SCENE 8 ===
+NASKAH: Proyek ini tersimpan otomatis tanpa database. Tekan Impor Naskah dan buat versimu sekarang.
+TEKS: **Giliranmu!** Impor naskah, mulai *sekarang*
+DURASI: 6.5
+MOOD: energik`;
+
+/* Assignment per scene tutorial (urutan = urutan scene). Nama preset PASTI ada di
+ * PAKET_PROMO (lihat preset-store.ts) — diverifikasi test test-tutorial.ts.
+ * Scene terakhir tanpa transisi (tidak ada scene berikutnya).
+ * latarPreset konsisten "kertas-grid" (branding ala video referensi); overlayId BERGANTI
+ * tiap scene supaya SEMUA 8 overlay tetap terpamerkan; kartu mengambang di 3 scene. */
+export const TUTORIAL_ASSIGN: {
+  animIn: string;
+  animLoop: string;
+  animOut: string;
+  transisi: string | null;
+  style: string;
+  latarPreset: string;
+  overlayId: string;
+  kartu: string | null;
+}[] = [
+  { animIn: "Kata Muncul Berturut", animLoop: "Mockup Mengambang Santai", animOut: "Promo Memudar Bersih", transisi: "Blur Berganti Konten", style: "Judul Promo Hitam", latarPreset: "kertas-grid", overlayId: "grain", kartu: null },
+  { animIn: "Kartu Promo Mengapung", animLoop: "Mockup Mengambang Santai", animOut: "Promo Memudar Bersih", transisi: "Geser Kartu Naik", style: "Caption Promo Bawah", latarPreset: "kertas-grid", overlayId: "progress", kartu: "Koleksi wokCam" },
+  { animIn: "Kartu Promo Mengapung", animLoop: "Mockup Mengambang Santai", animOut: "Promo Memudar Bersih", transisi: "Blur Berganti Konten", style: "Caption Promo Bawah", latarPreset: "kertas-grid", overlayId: "haze", kartu: "ChatGPT" },
+  { animIn: "Kata Muncul Berturut", animLoop: "Mockup Mengambang Santai", animOut: "Promo Memudar Bersih", transisi: "Blur Berganti Konten", style: "Teks Promo Sedang", latarPreset: "kertas-grid", overlayId: "vignette", kartu: null },
+  { animIn: "Kartu Promo Mengapung", animLoop: "Mockup Mengambang Santai", animOut: "Promo Memudar Bersih", transisi: "Geser Kartu Naik", style: "Caption Promo Bawah", latarPreset: "kertas-grid", overlayId: "bokeh", kartu: "Generator Naskah" },
+  { animIn: "Kata Muncul Berturut", animLoop: "Mockup Mengambang Santai", animOut: "Promo Memudar Bersih", transisi: "Blur Berganti Konten", style: "Teks Promo Sedang", latarPreset: "kertas-grid", overlayId: "letterbox", kartu: null },
+  { animIn: "Kata Muncul Berturut", animLoop: "Mockup Mengambang Santai", animOut: "Promo Memudar Bersih", transisi: "Kabur Kilat Putih", style: "Teks Promo Sedang", latarPreset: "kertas-grid", overlayId: "lower-third", kartu: null },
+  { animIn: "Kata Muncul Berturut", animLoop: "Mockup Mengambang Santai", animOut: "Promo Memudar Bersih", transisi: null, style: "Judul Promo Hitam", latarPreset: "kertas-grid", overlayId: "light-leak", kartu: null },
+];
+
+/** Proyek tutorial awal (dipakai store saat localStorage kosong & tombol "Muat ulang tutorial"). */
+export function proyekTutorial(): Proyek {
+  const scenes = dariNaskahMentah(NASKAH_TUTORIAL);
   return {
     version: 1,
-    judul: "3 Kebiasaan Pagi",
+    judul: JUDUL_TUTORIAL,
     rasio: "9:16",
-    scenes: dariNaskahMentah(NASKAH_CONTOH),
+    badge: BADGE_TUTORIAL,
+    watermark: WATERMARK_TUTORIAL,
+    scenes: scenes.map((s, i) => ({ ...s, ...(TUTORIAL_ASSIGN[i] ?? {}) })),
   };
 }
 
@@ -306,6 +493,8 @@ export function proyekKeJSON(p: Proyek): string {
       diperbarui: new Date().toISOString(),
       judul: p.judul,
       rasio: p.rasio,
+      badge: p.badge,
+      watermark: p.watermark,
       scenes: p.scenes.map((s, i) => ({
         no: i + 1,
         naskah: s.naskah,
@@ -314,6 +503,9 @@ export function proyekKeJSON(p: Proyek): string {
         mood: s.mood,
         latar_id: s.latarId,
         latar_en: s.latarEn,
+        latar_preset: s.latarPreset,
+        overlay: s.overlayId,
+        kartu: s.kartu,
         animasi: { in: s.animIn, out: s.animOut, loop: s.animLoop },
         transisi_ke_berikutnya: s.transisi,
         style: s.style,
@@ -339,11 +531,18 @@ export function proyekDariJSON(raw: string): HasilMuatJSON {
   if (!Array.isArray(obj.scenes) || obj.scenes.length === 0) {
     return { ok: false, error: 'JSON tidak berisi array "scenes".' };
   }
+  /* helper tingkat fungsi — dipakai di loop scene DAN untuk badge/watermark di akhir */
+  const teksAman = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
   const scenes: SceneProyek[] = [];
   for (const item of obj.scenes) {
     const sc = (item ?? {}) as Record<string, unknown>;
     const anim = (sc.animasi ?? {}) as Record<string, unknown>;
     const nama = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+    /* id latar/overlay harus anggota katalog — id asing/tak dikenal → null (toleran) */
+    const anggota = (daftar: { id: string }[], v: unknown): string | null => {
+      const s = nama(v);
+      return s && daftar.some((d) => d.id === s) ? s : null;
+    };
     /* Terima DUA bentuk: berkas ekspor (animasi:{in,out,loop}, transisi_ke_berikutnya)
      * dan autosave langsung (animIn/animOut/animLoop/transisi di level scene). */
     const dipilih = (bersarang: unknown, datar: unknown) => nama(bersarang) ?? nama(datar);
@@ -355,6 +554,9 @@ export function proyekDariJSON(raw: string): HasilMuatJSON {
       mood: moodAman(String(sc.mood ?? "fokus")),
       latarId: String(sc.latar_id ?? sc.latarId ?? ""),
       latarEn: String(sc.latar_en ?? sc.latarEn ?? ""),
+      latarPreset: anggota(LATAR_PRESET, nama(sc.latar_preset) ?? nama(sc.latarPreset)),
+      overlayId: anggota(OVERLAY_PRESET, nama(sc.overlay) ?? nama(sc.overlayId)),
+      kartu: nama(sc.kartu),
       animIn: dipilih(anim.in, sc.animIn),
       animOut: dipilih(anim.out, sc.animOut),
       animLoop: dipilih(anim.loop, sc.animLoop),
@@ -368,6 +570,8 @@ export function proyekDariJSON(raw: string): HasilMuatJSON {
       version: 1,
       judul: String(obj.judul ?? "Proyek Tanpa Judul"),
       rasio: (RASIO_LIST as readonly string[]).includes(String(obj.rasio)) ? String(obj.rasio) : "9:16",
+      badge: teksAman(obj.badge) ?? teksAman(obj.lencana),
+      watermark: teksAman(obj.watermark) ?? teksAman(obj.tanda_air),
       scenes,
     },
   };
@@ -378,7 +582,10 @@ export function proyekDariJSON(raw: string): HasilMuatJSON {
 export function simpanProyek(p: Proyek): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(KUNCI_PROYEK, JSON.stringify({ version: 1, judul: p.judul, rasio: p.rasio, scenes: p.scenes }));
+    window.localStorage.setItem(
+      KUNCI_PROYEK,
+      JSON.stringify({ version: 1, judul: p.judul, rasio: p.rasio, badge: p.badge, watermark: p.watermark, scenes: p.scenes }),
+    );
   } catch {
     /* penyimpanan penuh / mode privat — proyek tetap hidup di memori */
   }
@@ -455,6 +662,13 @@ export function gayaTransisiMasuk(gerakan: string, arah: string, q: number): Rea
       return { transform: `scale(${(0.7 + 0.3 * e).toFixed(4)})`, opacity: e };
     case "flip":
       return { transform: `perspective(600px) rotateY(${(-90 * (1 - e)).toFixed(2)}deg)`, opacity: q > 0.5 ? 1 : 0 };
+    case "blur":
+      /* khas video referensi: scene baru muncul DARI KABUR ke jelas + sedikit membesar */
+      return {
+        filter: `blur(${(14 * (1 - e)).toFixed(2)}px)`,
+        opacity: e,
+        transform: `scale(${(0.97 + 0.03 * e).toFixed(4)})`,
+      };
     case "none":
       return {};
     default: // crossfade
@@ -472,6 +686,13 @@ export function gayaTransisiKeluar(gerakan: string, arah: string, q: number): Re
       return { transform: `scale(${(1 + 0.25 * q).toFixed(4)})`, opacity: 1 - q };
     case "flip":
       return { transform: `perspective(600px) rotateY(${(-90 * q).toFixed(2)}deg)`, opacity: q > 0.5 ? 0 : 1 };
+    case "blur":
+      /* scene tua mengabur + sedikit membesar lalu lenyap (pasangan gayaTransisiMasuk) */
+      return {
+        filter: `blur(${(14 * q).toFixed(2)}px)`,
+        opacity: 1 - q,
+        transform: `scale(${(1 + 0.05 * q).toFixed(4)})`,
+      };
     case "none":
       return {};
     default:

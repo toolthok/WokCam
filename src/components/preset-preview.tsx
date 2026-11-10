@@ -119,6 +119,9 @@ export type HasilKeyframeAnimasi = {
  * Mengembalikan null bila memang tidak ada animasi (loop "none" / gerakan tak dikenal). */
 export function bangunKeyframesAnimasi(preset: PresetAnimasi): HasilKeyframeAnimasi | null {
   if (preset.tipe === "loop" && preset.gerakan === "none") return null;
+  /* "kata" = animasi kata-demi-kata — DITANGANI KHUSUS per-kata oleh renderer
+   * (PratinjauAnimasi & LapisScene), bukan keyframe satu elemen. */
+  if (preset.tipe === "in" && preset.gerakan === "kata") return null;
 
   const dur = clampDurasi(preset.durasi_ms, 250, 5000);
   const eas = cssEasing(preset.easing);
@@ -233,28 +236,73 @@ export function bangunKeyframesAnimasi(preset: PresetAnimasi): HasilKeyframeAnim
   return { kf, durasi: dur, easing: eas, iterasi };
 }
 
-/* Gaya awal sebelum animasi jalan: "in" mulai tersembunyi agar tidak kedip di paint pertama. */
+/* Gaya awal sebelum animasi jalan: "in" mulai tersembunyi agar tidak kedip di paint pertama.
+ * Gerakan "kata" dikelola per-kata → tanpa gaya sembunyi di container. */
 export function gayaAwalAnimasi(preset: PresetAnimasi): React.CSSProperties {
   const gaya: React.CSSProperties = {};
   if (preset.tipe === "in") {
+    if (preset.gerakan === "kata") return gaya;
     if (preset.gerakan === "wipe") gaya.clipPath = clipWipeMasuk(preset.arah);
     else gaya.opacity = 0;
   }
   return gaya;
 }
 
+/* ── Animasi KATA-DEMI-KATA (gerakan "kata") — dipakai pratinjau & panggung editor ──
+ * Tiap kata pop masuk berurutan: opacity 0→1 + naik sedikit + scale 0.92→1.
+ * Mengembalikan null bila bukan gerakan kata (pemanggil memakai jalur biasa). */
+const KATA_CONTOH = ["kata", "muncul", "satu", "demi", "satu"];
+
+export type HasilAnimasiKata = { langkah: number; durasiPerKata: number; easing: string };
+
+export function polaAnimasiKata(preset: PresetAnimasi, jumlahKata: number, durasiSceneDtk?: number): HasilAnimasiKata | null {
+  if (preset.tipe !== "in" || preset.gerakan !== "kata" || jumlahKata <= 0) return null;
+  const durasiPerKata = clampDurasi(preset.durasi_ms, 250, 1200);
+  /* jendela reveal: kalau durasi scene diketahui, kata-kata selesai muncul sebelum 55% scene */
+  const jendela = durasiSceneDtk ? Math.min(preset.durasi_ms, durasiSceneDtk * 1000 * 0.55) : preset.durasi_ms;
+  const langkah = Math.max(70, Math.min(420, Math.round(jendela / jumlahKata)));
+  return { langkah, durasiPerKata, easing: cssEasing(preset.easing) };
+}
+
+/** Keyframe pop untuk SATU kata (urutan waktu relatif, delay diatur pemanggil). */
+export const KF_KATA: Keyframe[] = [
+  { opacity: 0, transform: "translateY(0.45em) scale(0.92)" },
+  { opacity: 1, transform: "translateY(0) scale(1)" },
+];
+
 export function PratinjauAnimasi({ preset }: { preset: PresetAnimasi }) {
   const ref = useRef<HTMLDivElement>(null);
   const [idPutar, setIdPutar] = useState(0);
 
+  /* gerakan "kata": animasi per-kata berurutan (teknik khas video promo referensi) */
+  const polaKata = polaAnimasiKata(preset, KATA_CONTOH.length);
   useEffect(() => {
+    if (!polaKata) return;
+    const el = ref.current;
+    if (!el) return;
+    const anims: Animation[] = [];
+    el.querySelectorAll("[data-kata]").forEach((node, i) => {
+      anims.push(
+        node.animate(KF_KATA, {
+          duration: polaKata.durasiPerKata,
+          easing: polaKata.easing,
+          delay: i * polaKata.langkah,
+          fill: "both",
+        }),
+      );
+    });
+    return () => anims.forEach((a) => a.cancel());
+  }, [idPutar, preset, polaKata]);
+
+  useEffect(() => {
+    if (polaKata) return;
     const el = ref.current;
     if (!el) return;
     const hasil = bangunKeyframesAnimasi(preset);
     if (!hasil) return;
     const anim = el.animate(hasil.kf, { duration: hasil.durasi, easing: hasil.easing, fill: "both", iterations: hasil.iterasi });
     return () => anim.cancel();
-  }, [idPutar, preset]);
+  }, [idPutar, preset, polaKata]);
 
   const gayaAwal = gayaAwalAnimasi(preset);
 
@@ -266,7 +314,17 @@ export function PratinjauAnimasi({ preset }: { preset: PresetAnimasi }) {
         </div>
       )}
       <div ref={ref} className="absolute inset-0 flex items-center justify-center px-3" style={gayaAwal}>
-        <span className="truncate text-sm font-bold text-zinc-100">{preset.nama}</span>
+        {polaKata ? (
+          <span className="max-w-full text-center text-sm font-bold text-zinc-100">
+            {KATA_CONTOH.map((k, i) => (
+              <span key={i} data-kata className="inline-block whitespace-pre">
+                {k}{i < KATA_CONTOH.length - 1 ? " " : ""}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className="truncate text-sm font-bold text-zinc-100">{preset.nama}</span>
+        )}
       </div>
       <TombolPutar onClick={() => setIdPutar(n => n + 1)} />
     </Panggung>
@@ -312,6 +370,11 @@ export function PratinjauTransisi({ preset }: { preset: PresetTransisi }) {
         kfA.push({ transform: "scale(1)", opacity: 1 }, { transform: "scale(1.25)", opacity: 0 });
         kfB.push({ transform: "scale(0.7)", opacity: 0 }, { transform: "scale(1)", opacity: 1 });
         break;
+      case "blur":
+        /* khas video referensi: scene tua mengabur membesar, scene baru jernih dari kabur */
+        kfA.push({ opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(14px)", transform: "scale(1.05)" });
+        kfB.push({ opacity: 0, filter: "blur(14px)", transform: "scale(0.97)" }, { opacity: 1, filter: "blur(0px)", transform: "scale(1)" });
+        break;
       case "flip":
         kfA.push(
           { transform: "perspective(500px) rotateY(0deg)" },
@@ -337,11 +400,13 @@ export function PratinjauTransisi({ preset }: { preset: PresetTransisi }) {
     };
   }, [idPutar, preset]);
 
-  /* B tersembunyi di awal (kecuali wipe: tersembunyi lewat clip-path) */
+  /* B tersembunyi di awal (kecuali wipe: lewat clip-path; blur: lewat opacity+filter) */
   const gayaB: React.CSSProperties =
     preset.gerakan === "wipe"
       ? { clipPath: clipWipeMasuk(preset.arah || "kiri") }
-      : { opacity: 0 };
+      : preset.gerakan === "blur"
+        ? { opacity: 0, filter: "blur(14px)" }
+        : { opacity: 0 };
 
   return (
     <Panggung>

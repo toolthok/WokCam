@@ -1,3 +1,4 @@
+/// <reference types="bun-types" />
 /* ═══ Test regresi: skenario asli user — 2026-11-10 ═══
  * Kasus: JSON hasil bedah video referensi (paket minimalis editorial) harus
  * digabung ke koleksi yang berisi 6 preset horror. User mencoba merge lewat

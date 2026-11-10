@@ -1,6 +1,6 @@
 {
   "name": "wokcam",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
@@ -87,6 +87,6 @@
     "tw-animate-css": "^1.3.5",
     "typescript": "^5"
   },
-  "description": "Studio produksi video faceless Rp0 — prototype Next.js TANPA database: generator prompt, koleksi style (localStorage), editor timeline langsung, pratinjau + rekam layar. Kontrak siap porting ke app Kotlin.",
+  "description": "Studio produksi video faceless Rp0 — prototype Next.js TANPA database: generator prompt, koleksi style (localStorage), editor timeline langsung (drag, trim, teks, transisi, katalog latar/overlay), proyek tutorial + panduan interaktif, pratinjau WAAPI. Kontrak siap porting ke app Kotlin.",
   "license": "MIT"
 }

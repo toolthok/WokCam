@@ -7,7 +7,7 @@
  */
 
 import Link from 'next/link'
-import { Clapperboard, Download, FileUp, Wand2 } from 'lucide-react'
+import { CircleHelp, Clapperboard, Download, FileUp, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -17,9 +17,11 @@ import { RASIO_LIST } from '@/lib/editor/proyek'
 export function TopBar({
   onOpenImpor,
   onOpenEkspor,
+  onOpenPanduan,
 }: {
   onOpenImpor: () => void
   onOpenEkspor: () => void
+  onOpenPanduan: () => void
 }) {
   const rasio = useEditor((s) => s.rasio)
   const setRasio = useEditor((s) => s.setRasio)
@@ -73,12 +75,24 @@ export function TopBar({
           <span className="text-fuchsia-400">📚</span> Koleksi
         </Link>
 
-        <Button variant="ghost" size="sm" className="h-8 text-xs text-zinc-300" onClick={onOpenImpor}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-xs text-violet-300"
+          onClick={onOpenPanduan}
+          data-tour="panduan"
+          title="Tur interaktif: cara pakai editing di timeline"
+        >
+          <CircleHelp className="h-3.5 w-3.5" />
+          <span className="hidden md:inline">Panduan</span>
+        </Button>
+
+        <Button variant="ghost" size="sm" className="h-8 text-xs text-zinc-300" onClick={onOpenImpor} data-tour="topbar-impor">
           <FileUp className="h-3.5 w-3.5 text-emerald-400" />
           <span className="hidden md:inline">Impor Naskah</span>
         </Button>
 
-        <Button size="sm" className="h-8 bg-violet-600 text-xs text-white hover:bg-violet-500" onClick={onOpenEkspor}>
+        <Button size="sm" className="h-8 bg-violet-600 text-xs text-white hover:bg-violet-500" onClick={onOpenEkspor} data-tour="topbar-ekspor">
           <Download className="h-3.5 w-3.5" /> Ekspor
         </Button>
       </div>

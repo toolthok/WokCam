@@ -8,15 +8,18 @@
 
 import {
   clampDurasi, dariNaskahMentah, dariHasilNaskah, duplikatScene, geserScene, hapusScene,
-  hitungTiming, moodAman, pisahScene, pisahTeks, proyekDariJSON, proyekKeJSON, proyekContoh,
+  hitungTiming, moodAman, pisahScene, pisahTeks, proyekDariJSON, proyekKeJSON, proyekTutorial,
+  JUDUL_TUTORIAL, LATAR_PRESET, OVERLAY_PRESET, latarDariId, overlayDariId, kelasLatar,
   ringkasTeks, sceneKosong, totalDurasi, transisiDiWaktu, gelombangSuara, gradientMood,
   DURASI_MIN, DURASI_MAKS, type SceneProyek,
 } from "../src/lib/editor/proyek";
 import { koleksiBawaan, tambahkanPaket, type Koleksi } from "../src/lib/preset-store";
 
 let ok = 0, gagal = 0;
-function uji(nama: string, kondisi: boolean, detail = "") {
-  if (kondisi) { ok++; console.log(`  LULUS  ${nama}`); }
+/* kondisi menerima boolean|null|undefined: pola "h && ..." pada hasil fungsi yang bisa
+ * null dihitung GAGAL bila null — hanya true yang lulus. Sekalian memenuhi tsc strict. */
+function uji(nama: string, kondisi: boolean | null | undefined, detail = "") {
+  if (kondisi === true) { ok++; console.log(`  LULUS  ${nama}`); }
   else { gagal++; console.log(`  GAGAL  ${nama}${detail ? ` — ${detail}` : ""}`); }
 }
 
@@ -24,6 +27,7 @@ function scene(u: Partial<SceneProyek>): SceneProyek {
   return {
     id: u.id ?? "x", naskah: u.naskah ?? "", teks: u.teks ?? "", durasi: u.durasi ?? 5,
     mood: u.mood ?? "fokus", latarId: u.latarId ?? "", latarEn: u.latarEn ?? "",
+    latarPreset: u.latarPreset ?? null, overlayId: u.overlayId ?? null, kartu: u.kartu ?? null,
     animIn: u.animIn ?? null, animOut: u.animOut ?? null, animLoop: u.animLoop ?? null,
     transisi: u.transisi ?? null, style: u.style ?? null,
   };
@@ -43,15 +47,19 @@ console.log("── 1 · clampDurasi (kontrak DURASI 2-15, langkah 0,5) ──")
 
 console.log("── 2 · dariNaskahMentah (naskah berformat → scene) ──");
 {
-  const contoh = proyekContoh();
-  uji("proyek contoh 5 scene", contoh.scenes.length === 5, String(contoh.scenes.length));
-  uji("judul contoh terisi", contoh.judul.length > 0);
+  const contoh = proyekTutorial();
+  uji("proyek tutorial 8 scene", contoh.scenes.length === 8, String(contoh.scenes.length));
+  uji("judul = judul tutorial", contoh.judul === JUDUL_TUTORIAL, contoh.judul);
   uji("semua durasi di rentang 2-15", contoh.scenes.every((s) => s.durasi >= 2 && s.durasi <= 15));
-  uji("id unik", new Set(contoh.scenes.map((s) => s.id)).size === 5);
-  uji("assignment awal kosong (belum diatur)", contoh.scenes.every((s) => !s.animIn && !s.animOut && !s.animLoop && !s.transisi && !s.style));
+  uji("id unik", new Set(contoh.scenes.map((s) => s.id)).size === 8);
+  uji("assignment penuh (showcase): in/loop/out/style terisi semua", contoh.scenes.every((s) => s.animIn && s.animLoop && s.animOut && s.style));
+  uji("transisi terisi kecuali scene terakhir", contoh.scenes.slice(0, -1).every((s) => s.transisi) && contoh.scenes[7].transisi === null);
   uji("mood dalam daftar", contoh.scenes.every((s) => ["tenang","energik","dramatis","ceria","misterius","fokus"].includes(s.mood)));
   uji("teks layar diisi dari TEKS", contoh.scenes[0].teks.length > 0);
-  uji("latar EN terpisah dari latar ID", contoh.scenes[0].latarEn.length > 0 && contoh.scenes[0].latarId.length > 0);
+  uji("tutorial memakai latar preset yang SAH semua", contoh.scenes.every((s) => latarDariId(s.latarPreset) !== null));
+  uji("tutorial memakai overlay yang SAH semua", contoh.scenes.every((s) => overlayDariId(s.overlayId) !== null));
+  uji("latar KONSISTEN (semua kertas-grid — branding ala video referensi)", contoh.scenes.every((s) => s.latarPreset === "kertas-grid"));
+  uji("overlay 8 jenis berbeda SEMUA terpakai", new Set(contoh.scenes.map((s) => s.overlayId)).size === OVERLAY_PRESET.length);
 
   const rusak = dariNaskahMentah("=== SCENE 1 ===\nNASKAH: nol kata? tidak.\nDURASI: 99\nMOOD: aneh sekali\nTEKS: Hi");
   uji("durasi 99 dijepit ke 15", rusak[0].durasi === 15, String(rusak[0].durasi));
@@ -121,7 +129,7 @@ console.log("── 7 · Serialisasi JSON proyek (dua bentuk) ──");
     scene({ id: "a", naskah: "hai", teks: "Hai", durasi: 5, mood: "ceria", latarId: "kota", latarEn: "city", animIn: "Fade", animLoop: "Loop", style: "Bold", transisi: "Geser" }),
     scene({ id: "b", naskah: "bye", teks: "Bye", durasi: 6 }),
   ];
-  const json = proyekKeJSON({ version: 1, judul: "Uji Proyek!", rasio: "9:16", scenes: arr });
+  const json = proyekKeJSON({ version: 1, judul: "Uji Proyek!", rasio: "9:16", badge: "Demo", watermark: "@uji", scenes: arr });
   const parsed = JSON.parse(json);
   uji("nomor scene dihitung ulang (no=1,2)", parsed.scenes[0].no === 1 && parsed.scenes[1].no === 2);
   uji("animasi bersarang (animasi.in)", parsed.scenes[0].animasi.in === "Fade");
@@ -146,10 +154,12 @@ console.log("── 7 · Serialisasi JSON proyek (dua bentuk) ──");
     uji("id BARU diberikan saat muat (hindari bentrok)", balik2.proyek.scenes.every((s) => s.id !== "a" && s.id !== "b"));
   }
 
+  const r9 = proyekDariJSON('{"scenes":[{"durasi":5}],"rasio":"21:9"}');
+  const rKosong = proyekDariJSON('{"scenes":[{}]}');
   uji("JSON rusak → error jelas", !proyekDariJSON("{pecah").ok);
   uji("tanpa scenes → error", !proyekDariJSON('{"judul":"x"}').ok);
-  uji("rasio tak dikenal → 9:16", proyekDariJSON('{"scenes":[{"durasi":5}],"rasio":"21:9"}').ok && (proyekDariJSON('{"scenes":[{"durasi":5}],"rasio":"21:9"}') as { ok: true }).proyek.rasio === "9:16");
-  uji("durasi hilang → 5", (proyekDariJSON('{"scenes":[{}]}') as { ok: true }).proyek.scenes[0].durasi === 5);
+  uji("rasio tak dikenal → 9:16", r9.ok && r9.proyek.rasio === "9:16");
+  uji("durasi hilang → 5", rKosong.ok && rKosong.proyek.scenes[0].durasi === 5);
 }
 
 console.log("── 8 · Transisi antar scene (jendela akhir scene) ──");
@@ -194,6 +204,47 @@ console.log("── 9 · Util kecil ──");
   const g = gelombangSuara(1, 10);
   uji("gelombang suara 10 nilai 0..1", g.length === 10 && g.every((v) => v > 0 && v <= 1));
   uji("gelombang suara deterministik", JSON.stringify(gelombangSuara(7, 5)) === JSON.stringify(gelombangSuara(7, 5)));
+}
+
+console.log("── 10 · Katalog latar & overlay (dulu terlupakan, kini resmi) ──");
+{
+  const idLatar = LATAR_PRESET.map((l) => l.id);
+  const idOverlay = OVERLAY_PRESET.map((o) => o.id);
+  uji("11 latar: id unik (10 lama + kertas-grid baru)", new Set(idLatar).size === LATAR_PRESET.length && LATAR_PRESET.length === 11);
+  uji("latar semua punya kelas gradien & kata kunci", LATAR_PRESET.every((l) => l.kelas.includes("from-") && l.kataKunciEn.length > 0 && l.nama.length > 0));
+  uji("8 overlay: id unik", new Set(idOverlay).size === OVERLAY_PRESET.length && OVERLAY_PRESET.length === 8);
+  uji("overlay semua punya nama & deskripsi", OVERLAY_PRESET.every((o) => o.nama.length > 0 && o.deskripsi.length > 0));
+  uji("latarDariId(null) → null", latarDariId(null) === null);
+  uji("latarDariId tak dikenal → null", latarDariId("tidak-ada") === null);
+  uji("overlayDariId tak dikenal → null", overlayDariId("tidak-ada") === null);
+  uji("kelasLatar preset → kelasnya", kelasLatar("malam-neon", "fokus") === LATAR_PRESET[0].kelas);
+  uji("kelasLatar null → gradien mood", kelasLatar(null, "energik") === gradientMood("energik"));
+  uji("kelasLatar tak dikenal → gradien mood (toleran)", kelasLatar("aneh", "ceria") === gradientMood("ceria"));
+
+  /* serialisasi: latar/overlay ikut ekspor & balik utuh */
+  const arr: SceneProyek[] = [
+    scene({ id: "a", latarPreset: "senja-jogja", overlayId: "bokeh" }),
+    scene({ id: "b" }), // tanpa latar/overlay (null)
+  ];
+  const json = proyekKeJSON({ version: 1, judul: "Uji Latar", rasio: "9:16", badge: null, watermark: null, scenes: arr });
+  const parsed = JSON.parse(json);
+  uji("ekspor berisi latar_preset", parsed.scenes[0].latar_preset === "senja-jogja", String(parsed.scenes[0].latar_preset));
+  uji("ekspor berisi overlay", parsed.scenes[0].overlay === "bokeh", String(parsed.scenes[0].overlay));
+  const balik = proyekDariJSON(json);
+  uji("JSON latar/overlay terbaca balik", balik.ok && balik.proyek.scenes[0].latarPreset === "senja-jogja" && balik.proyek.scenes[0].overlayId === "bokeh");
+  uji("scene tanpa latar/overlay → null", balik.ok && balik.proyek.scenes[1].latarPreset === null && balik.proyek.scenes[1].overlayId === null);
+
+  /* JSON lama (sebelum fitur ini) tetap terbaca — field hilang → null */
+  const lama = proyekDariJSON('{"scenes":[{"durasi":5,"style":"X"}],"judul":"Lama"}');
+  uji("JSON lama tanpa field latar/overlay → null (kompatibel)", lama.ok && lama.proyek.scenes[0].latarPreset === null && lama.proyek.scenes[0].overlayId === null);
+
+  /* id asing dipoloskan → null, bukan error */
+  const asing = proyekDariJSON('{"scenes":[{"durasi":5,"latar_preset":"hacker-dark","overlay":"confetti"}]}');
+  uji("id latar/overlay asing → null (toleran)", asing.ok && asing.proyek.scenes[0].latarPreset === null && asing.proyek.scenes[0].overlayId === null);
+
+  /* bentuk autosave (field datar camelCase) juga terbaca */
+  const autosave = proyekDariJSON(JSON.stringify({ version: 1, judul: "A", rasio: "9:16", scenes: [{ durasi: 5, latarPreset: "laut-dalam", overlayId: "grain" }] }));
+  uji("autosave camelCase latarPreset/overlayId terbaca", autosave.ok && autosave.proyek.scenes[0].latarPreset === "laut-dalam" && autosave.proyek.scenes[0].overlayId === "grain");
 }
 
 console.log(`\nHasil: ${ok} lulus, ${gagal} gagal`);

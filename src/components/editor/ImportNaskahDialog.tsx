@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { useEditor, NASKAH_CONTOH } from '@/lib/editor/store'
+import { useEditor, NASKAH_TUTORIAL } from '@/lib/editor/store'
 import { fmtDurasi } from '@/lib/editor/proyek'
 import { parseNaskah } from '@/lib/naskah-parser'
 import { cn } from '@/lib/utils'
@@ -35,7 +35,6 @@ async function bacaClipboard(): Promise<string | null> {
 export function ImportNaskahDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const muatNaskah = useEditor((s) => s.muatNaskah)
   const muatProyekJSON = useEditor((s) => s.muatProyekJSON)
-  const muatContoh = useEditor((s) => s.muatContoh)
 
   const [teks, setTeks] = useState('')
   const [mode, setMode] = useState<'ganti' | 'tambah'>('ganti')
@@ -166,9 +165,9 @@ export function ImportNaskahDialog({ open, onOpenChange }: { open: boolean; onOp
           <Button
             variant="outline"
             className="border-zinc-700 text-xs text-zinc-300"
-            onClick={() => { setTeks(NASKAH_CONTOH); setInfo('Contoh diisi — tekan Muat untuk memuat ke timeline.') }}
+            onClick={() => { setTeks(NASKAH_TUTORIAL); setInfo('Contoh tutorial diisi — tekan Muat untuk memuat ke timeline.') }}
           >
-            <Wand2 className="h-3.5 w-3.5 text-violet-400" /> Isi Contoh
+            <Wand2 className="h-3.5 w-3.5 text-violet-400" /> Isi Contoh Tutorial
           </Button>
           <Button onClick={muat} disabled={!pratinjau?.ok} className="bg-violet-600 text-xs text-white hover:bg-violet-500">
             Muat ke Timeline

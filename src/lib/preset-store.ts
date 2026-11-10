@@ -12,7 +12,8 @@
  *   - Impor 2 mode : "gabung" (default — item baru ditambah, duplikat dilewati) dan
  *                    "ganti" (isi koleksi diganti persis dari berkas; butuh ≥1 item valid).
  *   - Paket siap pakai: PAKET_HORROR (6 animasi) + PAKET_MINIMALIS (6 animasi · 4 transisi ·
- *                    4 style) — hasil uji bedah video referensi, satu klik masuk koleksi.
+ *                    4 style) + PAKET_PROMO (gaya video referensi tipografi terang) — satu
+ *                    klik masuk koleksi.
  *                    Penggabungan TIDAK dilakukan lewat ChatGPT (terbukti kehilangan data) —
  *                    app-lah yang menggabung lewat kunci dedupe.
  *   - Prinsip parser sama dengan naskah-parser: "AI tempel + validasi toleran" —
@@ -28,11 +29,14 @@ import { MOODS } from "./naskah-parser";
 
 export const TIPE_ANIMASI = ["in", "out", "loop"] as const;
 export const GERAKAN_ANIMASI: Record<(typeof TIPE_ANIMASI)[number], string[]> = {
-  in: ["fade", "slide", "zoom", "bounce", "wipe"],
+  /* "kata" = teks muncul KATA-DEMI-KATA (teknik khas video promo referensi) —
+   * ditangani khusus renderer (tiap kata pop masuk berurutan), bukan keyframe blok. */
+  in: ["fade", "slide", "zoom", "bounce", "wipe", "kata"],
   out: ["fade", "slide", "zoom", "shrink", "wipe"],
   loop: ["none", "zoom_in", "zoom_out", "pan_kiri", "pan_kanan", "pan_atas", "pan_bawah"],
 };
-export const GERAKAN_TRANSISI = ["none", "crossfade", "slide", "wipe", "zoom", "flip"];
+/* "blur" = scene tua mengabur + memudar, scene baru muncul dari kabur ke jelas. */
+export const GERAKAN_TRANSISI = ["none", "crossfade", "slide", "wipe", "zoom", "flip", "blur"];
 export const EASING = ["linear", "ease_in", "ease_out", "ease_in_out", "spring"];
 export const ARAH = ["kiri", "kanan", "atas", "bawah"];
 export const POSISI = ["atas", "tengah", "bawah"];
@@ -492,11 +496,34 @@ export const PAKET_HORROR: PaketBawaan = {
   styles: [],
 };
 
-export type NamaPaket = "horror" | "minimalis";
+/* PAKET_PROMO — hasil bedah video referensi "promo tipografi terang" (opencode/insiderforce
+ * style): latar putih bersih, teks muncul KATA-DEMI-KATA dengan penekanan campuran
+ * (tebal / miring via penanda bintang), kartu mockup melayang, badge + tanda air persisten,
+ * transisi blur. Preset "Kata Muncul Berturut" = gerakan "kata" (renderer khusus). */
+export const PAKET_PROMO: PaketBawaan = {
+  presets: [
+    { nama: "Kata Muncul Berturut", tipe: "in", gerakan: "kata", arah: "", durasi_ms: 2400, easing: "ease_out", intensitas: 100, tag: ["tenang", "fokus"], sfx: "tik tipis" },
+    { nama: "Kartu Promo Mengapung", tipe: "in", gerakan: "slide", arah: "bawah", durasi_ms: 650, easing: "ease_out", intensitas: 70, tag: ["fokus", "tenang"], sfx: "swish kertas" },
+    { nama: "Promo Memudar Bersih", tipe: "out", gerakan: "fade", arah: "", durasi_ms: 420, easing: "ease_in", intensitas: 80, tag: ["tenang"], sfx: "desir halus" },
+    { nama: "Mockup Mengambang Santai", tipe: "loop", gerakan: "pan_atas", arah: "", durasi_ms: 3600, easing: "ease_in_out", intensitas: 15, tag: ["tenang"], sfx: "" },
+  ],
+  transitions: [
+    { nama: "Blur Berganti Konten", gerakan: "blur", arah: "", durasi_ms: 520, easing: "ease_in_out", tag: ["fokus", "tenang"], sfx: "whoosh blur" },
+    { nama: "Kabur Kilat Putih", gerakan: "blur", arah: "", durasi_ms: 700, easing: "ease_in_out", tag: ["tenang"], sfx: "desir lembut" },
+    { nama: "Geser Kartu Naik", gerakan: "slide", arah: "atas", durasi_ms: 420, easing: "ease_in_out", tag: ["fokus"], sfx: "swipe pendek" },
+  ],
+  styles: [
+    { nama: "Judul Promo Hitam", font: "sf_black", ukuran: 72, warna_teks: "#111111", tebal_outline: 0, warna_outline: "#FFFFFF", posisi: "tengah", tag: ["fokus", "energik"] },
+    { nama: "Teks Promo Sedang", font: "sf_bold", ukuran: 46, warna_teks: "#27272a", tebal_outline: 0, warna_outline: "#FFFFFF", posisi: "tengah", tag: ["fokus", "tenang"] },
+    { nama: "Caption Promo Bawah", font: "sf_bold", ukuran: 34, warna_teks: "#3f3f46", tebal_outline: 0, warna_outline: "#FFFFFF", posisi: "bawah", tag: ["tenang", "fokus"] },
+  ],
+};
+
+export type NamaPaket = "horror" | "minimalis" | "promo";
 
 /** Satu klik dari halaman Koleksi: masukkan paket bawaan ke koleksi user (mode gabung). */
 export function tambahkanPaket(koleksiLama: Koleksi, paket: NamaPaket): HasilImporKoleksi {
-  const sumber = paket === "minimalis" ? PAKET_MINIMALIS : PAKET_HORROR;
+  const sumber = paket === "minimalis" ? PAKET_MINIMALIS : paket === "promo" ? PAKET_PROMO : PAKET_HORROR;
   const json = JSON.stringify({ version: 1, presets: sumber.presets, transitions: sumber.transitions, styles: sumber.styles });
   return imporKeKoleksi(koleksiLama, json, "gabung");
 }
