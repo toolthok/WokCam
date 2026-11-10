@@ -1,17 +1,23 @@
 'use client'
 
+/* ══════════ Halaman Editor wokCam (penerus editor versi database) ══════════
+ * Susunan: TopBar · SceneList | PreviewCanvas + Timeline | Inspector
+ * - TANPA DATABASE: proyek autosave ke localStorage (wokcam.proyek.v1).
+ * - Editing langsung di timeline: seret urutkan, trim durasi, klik-dua-kali edit,
+ *   chip transisi, toolbar penugasan animasi/style dari Koleksi.
+ * - PlaybackEngine: raf loop — memindahkan playhead; berhenti otomatis di akhir.
+ */
+
 import { useEffect, useState } from 'react'
 import { TopBar } from '@/components/editor/TopBar'
 import { SceneList } from '@/components/editor/SceneList'
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
 import { Timeline } from '@/components/editor/Timeline'
 import { Inspector } from '@/components/editor/Inspector'
-import { ExportModal } from '@/components/editor/ExportModal'
-import { ToolGuidePanel } from '@/components/editor/ToolGuidePanel'
-import { AnimationLibrary } from '@/components/editor/AnimationLibrary'
-import { DatabasePanel } from '@/components/editor/DatabasePanel'
+import { ImportNaskahDialog } from '@/components/editor/ImportNaskahDialog'
+import { ExportDialog } from '@/components/editor/ExportDialog'
 import { useEditor } from '@/lib/editor/store'
-import { fmtTime, totalDuration } from '@/lib/editor/engine'
+import { fmtJam, totalDurasi } from '@/lib/editor/proyek'
 
 function PlaybackEngine() {
   const playing = useEditor((s) => s.playing)
@@ -23,7 +29,7 @@ function PlaybackEngine() {
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
       const st = useEditor.getState()
-      const total = totalDuration(st.scenes, st.voice.speed)
+      const total = totalDurasi(st.scenes)
       const next = st.time + dt
       if (next >= total) {
         useEditor.setState({ time: total, playing: false })
@@ -40,41 +46,51 @@ function PlaybackEngine() {
 
 function StatusBar() {
   const scenes = useEditor((s) => s.scenes)
-  const speed = useEditor((s) => s.voice.speed)
-  const aspect = useEditor((s) => s.aspect)
-  const total = totalDuration(scenes, speed)
+  const rasio = useEditor((s) => s.rasio)
+  const hydrasiSelesai = useEditor((s) => s.hydrasiSelesai)
+  const total = totalDurasi(scenes)
   return (
     <footer className="flex h-7 shrink-0 items-center justify-between border-t bg-zinc-950 px-3 text-[10.5px] text-zinc-500">
       <span className="flex items-center gap-2">
         <span className="font-medium text-zinc-400">
-          {scenes.length} scene · {fmtTime(total)} · {aspect} · 1080p/30fps
+          {scenes.length} scene · {fmtJam(total)} · {rasio} · 1080p/30fps
         </span>
-        <span className="hidden text-zinc-600 sm:inline">· Spasi untuk play/pause</span>
+        <span className="hidden text-zinc-600 sm:inline">· Spasi = putar/jeda · Ctrl+Z = urungkan</span>
       </span>
       <span className="flex items-center gap-1.5">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-        Autosave aktif · wokCam v0.1
+        {hydrasiSelesai ? 'Tersimpan otomatis · tanpa database' : 'Memuat proyek…'} · wokCam v0.2
       </span>
     </footer>
   )
 }
 
 export default function Page() {
-  const [guideOpen, setGuideOpen] = useState(false)
-  const [exportOpen, setExportOpen] = useState(false)
-  const [animOpen, setAnimOpen] = useState(false)
-  const [dbOpen, setDbOpen] = useState(false)
+  const [imporOpen, setImporOpen] = useState(false)
+  const [eksporOpen, setEksporOpen] = useState(false)
+  const hidrasi = useEditor((s) => s.hidrasi)
+
+  /* hidrasi proyek dari localStorage SETELAH mount — hindari hydration mismatch */
+  useEffect(() => {
+    hidrasi()
+  }, [hidrasi])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const el = document.activeElement
+      const el = document.activeElement as HTMLElement | null
       const typing =
-        el &&
-        (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)
+        el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)
       if (typing) return
       if (e.code === 'Space') {
         e.preventDefault()
         useEditor.getState().togglePlay()
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) useEditor.getState().redo()
+        else useEditor.getState().undo()
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault()
+        useEditor.getState().redo()
       }
     }
     window.addEventListener('keydown', handler)
@@ -84,30 +100,23 @@ export default function Page() {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950 text-foreground lg:h-screen lg:overflow-hidden">
       <PlaybackEngine />
-      <TopBar
-        onOpenGuide={() => setGuideOpen(true)}
-        onOpenExport={() => setExportOpen(true)}
-        onOpenDatabase={() => setDbOpen(true)}
-        onOpenAnims={() => setAnimOpen(true)}
-      />
+      <TopBar onOpenImpor={() => setImporOpen(true)} onOpenEkspor={() => setEksporOpen(true)} />
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <SceneList className="order-2 lg:order-1 lg:w-64 lg:shrink-0" />
+        <SceneList className="order-2 lg:order-1 lg:w-60 lg:shrink-0 max-lg:max-h-72" />
 
         <main className="order-1 flex min-h-0 min-w-0 flex-1 flex-col lg:order-2">
           <PreviewCanvas />
           <Timeline />
         </main>
 
-        <Inspector className="order-3 max-lg:max-h-[560px] lg:w-80 lg:shrink-0" />
+        <Inspector className="order-3 max-lg:max-h-[620px] lg:w-80 lg:shrink-0" />
       </div>
 
       <StatusBar />
 
-      <ToolGuidePanel open={guideOpen} onOpenChange={setGuideOpen} />
-      <ExportModal open={exportOpen} onOpenChange={setExportOpen} />
-      <AnimationLibrary open={animOpen} onOpenChange={setAnimOpen} />
-      <DatabasePanel open={dbOpen} onOpenChange={setDbOpen} />
+      <ImportNaskahDialog open={imporOpen} onOpenChange={setImporOpen} />
+      <ExportDialog open={eksporOpen} onOpenChange={setEksporOpen} />
     </div>
   )
 }

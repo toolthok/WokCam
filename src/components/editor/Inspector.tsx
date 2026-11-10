@@ -1,63 +1,248 @@
 'use client'
 
-import { Type, Mic, ImageIcon, Captions } from 'lucide-react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ScrollArea } from '@/components/ui/scroll-area'
+/* ══════════ Inspector — detail scene terpilih (panel kanan) ══════════
+ * Pelengkap editing langsung di timeline: field naskah/teks/durasi/mood/latar
+ * + penugasan animasi & style dari Koleksi. Durasi lewat slider memakai
+ * onValueCommit supaya riwayat undo tidak banjir (satu entri per sesi geser).
+ */
+
+import { useState } from 'react'
+import { Eraser, Layers, Sparkles, Type } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import { useEditor } from '@/lib/editor/store'
+import { AssignMenu } from '@/components/editor/AssignMenu'
+import { fmtDurasi, totalDurasi } from '@/lib/editor/proyek'
+import { MOODS } from '@/lib/naskah-parser'
 import { cn } from '@/lib/utils'
-import { NaskahTab } from './tabs/NaskahTab'
-import { SuaraTab } from './tabs/SuaraTab'
-import { VisualTab } from './tabs/VisualTab'
-import { TeksTab } from './tabs/TeksTab'
+
+function BarisAssign({
+  label,
+  nilai,
+  jenis,
+  onPilih,
+  onSemua,
+}: {
+  label: string
+  nilai: string | null
+  jenis: 'in' | 'out' | 'loop' | 'transisi' | 'style'
+  onPilih: (nama: string | null) => void
+  onSemua?: (nama: string | null) => void
+}) {
+  const [semuaNilai, setSemuaNilai] = useState<string | null>(null)
+  return (
+    <div className="flex items-center gap-1.5 py-1">
+      <span className="w-[86px] shrink-0 text-[11px] font-medium text-zinc-400">{label}</span>
+      <span className={cn('min-w-0 flex-1 truncate text-[11px]', nilai ? 'text-violet-200' : 'text-zinc-500')}>
+        {nilai ?? '— belum diatur —'}
+      </span>
+      <AssignMenu jenis={jenis} terpasang={nilai} onPilih={onPilih} lebar="w-[280px]" align="end">
+        <Button variant="outline" size="sm" className="h-7 border-zinc-700 px-2 text-[11px] text-zinc-200 hover:bg-zinc-800">
+          {nilai ? 'ganti' : 'pilih'}
+        </Button>
+      </AssignMenu>
+      {onSemua && (
+        <AssignMenu
+          jenis={jenis}
+          terpasang={semuaNilai}
+          onPilih={(n) => { setSemuaNilai(n); onSemua(n) }}
+          lebar="w-[280px]"
+          align="end"
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-1.5 text-[10px] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+            title={`Terapkan ${label.toLowerCase()} ke semua scene`}
+          >
+            → semua
+          </Button>
+        </AssignMenu>
+      )}
+    </div>
+  )
+}
 
 export function Inspector({ className }: { className?: string }) {
   const scenes = useEditor((s) => s.scenes)
   const selectedId = useEditor((s) => s.selectedId)
-  const idx = scenes.findIndex((s) => s.id === selectedId)
+  const perbaruiScene = useEditor((s) => s.perbaruiScene)
+  const rekamRiwayat = useEditor((s) => s.rekamRiwayat)
+  const aturDurasi = useEditor((s) => s.aturDurasi)
+  const terapkanAnimasi = useEditor((s) => s.terapkanAnimasi)
+  const terapkanTransisi = useEditor((s) => s.terapkanTransisi)
+  const terapkanTransisiSemua = useEditor((s) => s.terapkanTransisiSemua)
+  const terapkanStyle = useEditor((s) => s.terapkanStyle)
+
+  const scene = scenes.find((s) => s.id === selectedId) ?? scenes[0] ?? null
+  const index = scene ? scenes.findIndex((s) => s.id === scene.id) : -1
+  const kata = scene?.naskah.trim() ? scene.naskah.trim().split(/\s+/).filter(Boolean).length : 0
+  const estBicara = Math.ceil(kata / 2.4)
+
+  const [sliderDurasi, setSliderDurasi] = useState<number | null>(null)
 
   return (
-    <aside
-      className={cn('flex flex-col border-l bg-zinc-950/60', className)}
-      aria-label="Pengaturan scene"
-    >
-      <div className="px-3 pb-2 pt-3">
-        <p className="text-[10px] uppercase tracking-wider text-zinc-500">Pengaturan</p>
-        <p className="text-sm font-semibold text-zinc-200">
-          {idx >= 0 ? `Scene ${idx + 1} dari ${scenes.length}` : 'Tidak ada scene'}
-        </p>
-      </div>
+    <aside className={cn('flex flex-col overflow-y-auto border-l bg-zinc-950/90 thin-scroll', className)} aria-label="Detail scene">
+      {!scene ? (
+        <div className="p-4 text-sm text-zinc-500">Belum ada scene — impor naskah dulu.</div>
+      ) : (
+        <div className="space-y-4 p-3.5">
+          {/* identitas scene */}
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-violet-300">
+                Scene {index + 1} / {scenes.length}
+              </span>
+              <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-zinc-300">
+                {fmtDurasi(scene.durasi)}s · {scene.mood}
+              </span>
+            </div>
+            <p className="mt-1 text-[10px] text-zinc-500">
+              Proyek: {scenes.length} scene · {fmtDurasi(totalDurasi(scenes))}s total
+            </p>
+          </div>
 
-      <Tabs defaultValue="naskah" className="flex min-h-0 flex-1 flex-col">
-        <TabsList className="mx-3 grid h-9 grid-cols-4 gap-1 bg-zinc-900 p-1">
-          <TabsTrigger value="naskah" className="gap-1 px-1 text-[11px] data-[state=active]:bg-violet-600 data-[state=active]:text-white">
-            <Type className="h-3.5 w-3.5" /> Naskah
-          </TabsTrigger>
-          <TabsTrigger value="suara" className="gap-1 px-1 text-[11px] data-[state=active]:bg-violet-600 data-[state=active]:text-white">
-            <Mic className="h-3.5 w-3.5" /> Suara
-          </TabsTrigger>
-          <TabsTrigger value="visual" className="gap-1 px-1 text-[11px] data-[state=active]:bg-violet-600 data-[state=active]:text-white">
-            <ImageIcon className="h-3.5 w-3.5" /> Visual
-          </TabsTrigger>
-          <TabsTrigger value="teks" className="gap-1 px-1 text-[11px] data-[state=active]:bg-violet-600 data-[state=active]:text-white">
-            <Captions className="h-3.5 w-3.5" /> Teks
-          </TabsTrigger>
-        </TabsList>
+          {/* teks & naskah */}
+          <div className="space-y-2">
+            <div>
+              <Label className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-wide text-zinc-400">
+                <Type className="h-3 w-3" /> Teks di layar
+              </Label>
+              <Input
+                value={scene.teks}
+                onChange={(e) => perbaruiScene(scene.id, { teks: e.target.value }, false)}
+                onFocus={rekamRiwayat}
+                placeholder="maks 8 kata"
+                className="h-8 border-zinc-700 bg-zinc-950 text-xs focus-visible:border-violet-500"
+              />
+            </div>
+            <div>
+              <Label className="mb-1 block text-[10px] uppercase tracking-wide text-zinc-400">
+                Naskah (dibacakan) · {kata} kata ≈ {estBicara}s bicara
+              </Label>
+              <textarea
+                value={scene.naskah}
+                onChange={(e) => perbaruiScene(scene.id, { naskah: e.target.value }, false)}
+                onFocus={rekamRiwayat}
+                rows={3}
+                className="w-full resize-none rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-2 text-xs text-zinc-200 outline-none focus:border-violet-500"
+                placeholder="Kalimat yang dibacakan suara AI…"
+              />
+            </div>
+          </div>
 
-        <ScrollArea className="min-h-0 flex-1 max-lg:max-h-none">
-          <TabsContent value="naskah" className="mt-0 p-3">
-            <NaskahTab />
-          </TabsContent>
-          <TabsContent value="suara" className="mt-0 p-3">
-            <SuaraTab />
-          </TabsContent>
-          <TabsContent value="visual" className="mt-0 p-3">
-            <VisualTab />
-          </TabsContent>
-          <TabsContent value="teks" className="mt-0 p-3">
-            <TeksTab />
-          </TabsContent>
-        </ScrollArea>
-      </Tabs>
+          {/* durasi */}
+          <div>
+            <Label className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wide text-zinc-400">
+              Durasi scene
+              <span className="font-mono text-xs text-violet-300">{fmtDurasi(sliderDurasi ?? scene.durasi)}s</span>
+            </Label>
+            <Slider
+              min={2}
+              max={15}
+              step={0.5}
+              value={[sliderDurasi ?? scene.durasi]}
+              onValueChange={(v) => setSliderDurasi(v[0])}
+              onValueCommit={(v) => { aturDurasi(scene.id, v[0]); setSliderDurasi(null) }}
+              className="accent-violet-500"
+              aria-label="Durasi scene"
+            />
+            <p className="mt-1 text-[10px] text-zinc-500">2-15 detik · langkah 0,5 — sama juga bisa lewat tarik tepi kanan blok di timeline.</p>
+          </div>
+
+          {/* mood */}
+          <div>
+            <Label className="mb-1 block text-[10px] uppercase tracking-wide text-zinc-400">Mood</Label>
+            <Select value={scene.mood} onValueChange={(v) => perbaruiScene(scene.id, { mood: v })}>
+              <SelectTrigger className="h-8 border-zinc-700 bg-zinc-950 text-xs" aria-label="Mood">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MOODS.map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* latar */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="mb-1 block text-[10px] uppercase tracking-wide text-zinc-400">Latar (ID)</Label>
+              <Input
+                value={scene.latarId}
+                onChange={(e) => perbaruiScene(scene.id, { latarId: e.target.value }, false)}
+                onFocus={rekamRiwayat}
+                placeholder="kata kunci gambar"
+                className="h-8 border-zinc-700 bg-zinc-950 text-xs focus-visible:border-violet-500"
+              />
+            </div>
+            <div>
+              <Label className="mb-1 block text-[10px] uppercase tracking-wide text-zinc-400">Latar (EN)</Label>
+              <Input
+                value={scene.latarEn}
+                onChange={(e) => perbaruiScene(scene.id, { latarEn: e.target.value }, false)}
+                onFocus={rekamRiwayat}
+                placeholder="stock keywords"
+                className="h-8 border-zinc-700 bg-zinc-950 text-xs focus-visible:border-violet-500"
+              />
+            </div>
+          </div>
+
+          {/* penugasan dari koleksi */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-2.5">
+            <p className="mb-1 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-fuchsia-300">
+              <Layers className="h-3 w-3" /> Penugasan dari Koleksi
+            </p>
+            <BarisAssign
+              label="Anim. Masuk"
+              jenis="in"
+              nilai={scene.animIn}
+              onPilih={(n) => terapkanAnimasi('in', n, scene.id)}
+              onSemua={(n) => terapkanAnimasi('in', n, 'all')}
+            />
+            <BarisAssign
+              label="Gerak Loop"
+              jenis="loop"
+              nilai={scene.animLoop}
+              onPilih={(n) => terapkanAnimasi('loop', n, scene.id)}
+              onSemua={(n) => terapkanAnimasi('loop', n, 'all')}
+            />
+            <BarisAssign
+              label="Anim. Keluar"
+              jenis="out"
+              nilai={scene.animOut}
+              onPilih={(n) => terapkanAnimasi('out', n, scene.id)}
+              onSemua={(n) => terapkanAnimasi('out', n, 'all')}
+            />
+            <BarisAssign
+              label="Transisi →"
+              jenis="transisi"
+              nilai={scene.transisi}
+              onPilih={(n) => terapkanTransisi(n, scene.id)}
+              onSemua={(n) => terapkanTransisiSemua(n)}
+            />
+            <BarisAssign
+              label="Gaya Teks"
+              jenis="style"
+              nilai={scene.style}
+              onPilih={(n) => terapkanStyle(n, scene.id)}
+              onSemua={(n) => terapkanStyle(n, 'all')}
+            />
+            <p className="mt-1.5 flex items-start gap-1 text-[10px] leading-relaxed text-zinc-500">
+              <Sparkles className="mt-0.5 h-3 w-3 shrink-0" />
+              Daftar diambil dari Koleksi Style — kelola lewat halaman Koleksi atau Generator Preset.
+            </p>
+          </div>
+
+          <p className="flex items-center gap-1.5 text-[10px] text-zinc-600">
+            <Eraser className="h-3 w-3" /> Semua perubahan otomatis tersimpan di browser ini (tanpa database).
+          </p>
+        </div>
+      )}
     </aside>
   )
 }

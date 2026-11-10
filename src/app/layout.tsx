@@ -26,9 +26,9 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "wokCam — Studio Video Faceless (Mockup UI)",
+  title: "wokCam — Studio Video Faceless (Prototype)",
   description:
-    "Editor video faceless: tempel naskah dari AI chat, atur scene, suara, visual & subtitle, lalu export. Dilengkapi database Google Sheets, koleksi animasi & sumber aset gratis Rp0.",
+    "Editor timeline faceless tanpa database: tempel naskah dari ChatGPT, susun scene langsung di timeline (seret, trim, transisi), pasang animasi & style dari Koleksi, lalu rekam layar pratinjau. Logika identik dengan kontrak app Kotlin.",
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },

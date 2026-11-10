@@ -1,307 +1,330 @@
 'use client'
 
+/* ══════════ Store Editor Timeline wokCam ══════════
+ * PERTANYAAN YANG DIJAWAB: "siapa pemegang state timeline?"
+ *   - zustand satu toko: proyek (judul/rasio/scenes) + playhead + undo/redo.
+ *   - TANPA DATABASE: tiap mutasi langsung autosave ke localStorage lewat
+ *     simpanProyek() — di app Kotlin nanti satu berkas JSON di storage internal.
+ *   - Semua operasi scene memakai fungsi murni dari proyek.ts (mudah diuji),
+ *     store hanya membungkus: dorong riwayat → ubah → simpan.
+ *   - Hidrasi: server & client mulai dari proyek contoh (identik, tanpa hydration
+ *     mismatch); setelah mount, localStorage menang bila ada proyek tersimpan.
+ */
+
 import { create } from 'zustand'
 import {
-  ANIMATION_PRESETS,
-  IMG_STOCKS,
-  INITIAL_SCENES,
-  makeScene,
-  newId,
-  type AnimationPreset,
-  type Aspect,
-  type Caption,
-  type Scene,
-} from './model'
-import { groupIntoScenes, splitSentences, totalDuration, sceneDuration } from './engine'
+  clampDurasi,
+  dariNaskahMentah,
+  duplikatScene,
+  geserScene,
+  hapusScene,
+  muatProyek,
+  NASKAH_CONTOH,
+  pisahScene,
+  proyekContoh,
+  proyekDariJSON,
+  sceneKosong,
+  simpanProyek,
+  totalDurasi,
+  type Proyek,
+  type SceneProyek,
+} from './proyek'
 
-const PRESETS_KEY = 'wokcam-presets'
+/* Re-export agar dialog impor bisa ambil contoh dari satu sumber */
+export { NASKAH_CONTOH }
 
-function loadCustomPresets(): AnimationPreset[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(PRESETS_KEY)
-    return raw ? (JSON.parse(raw) as AnimationPreset[]) : []
-  } catch {
-    return []
-  }
-}
+type Snapshot = { judul: string; rasio: string; scenes: SceneProyek[]; selectedId: string }
 
-function persistCustomPresets(list: AnimationPreset[]) {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(PRESETS_KEY, JSON.stringify(list))
-  } catch {
-    /* demo: abaikan kalau storage penuh */
-  }
-}
-
-interface VoiceState {
-  voiceId: string
-  speed: number
-  pitch: number
-  volume: number
-}
+export type TipeAnimasi = 'in' | 'out' | 'loop'
 
 interface EditorStore {
-  scenes: Scene[]
+  judul: string
+  rasio: string
+  scenes: SceneProyek[]
   selectedId: string
-  playing: boolean
   time: number
-  aspect: Aspect
+  playing: boolean
   zoom: number // px per detik
-  transition: number
-  voice: VoiceState
-  caption: Caption
-  music: { name: string; volume: number; enabled: boolean }
-  projectName: string
-  customPresets: AnimationPreset[]
+  hydrasiSelesai: boolean
+  undoTumpuk: Snapshot[]
+  redoTumpuk: Snapshot[]
 
-  // koleksi animasi
-  applyPreset: (presetId: string, targetSceneId?: string | 'all') => void
-  savePresetFromScene: (sceneId: string, name: string) => void
-  deletePreset: (presetId: string) => void
+  /* hidrasi & proyek */
+  hidrasi: () => void
+  setJudul: (n: string) => void
+  setRasio: (r: string) => void
+  muatNaskah: (raw: string, mode: 'ganti' | 'tambah') => number
+  muatProyekJSON: (raw: string) => { ok: boolean; error?: string; jumlah?: number }
+  muatContoh: () => void
 
-  // aksi scene
-  addScene: (afterId?: string) => void
-  deleteScene: (id: string) => void
-  duplicateScene: (id: string) => void
-  moveScene: (id: string, dir: -1 | 1) => void
-  reorder: (from: number, to: number) => void
-  selectScene: (id: string, seek?: boolean) => void
-  updateScene: (id: string, patch: Partial<Scene>) => void
-  importScript: (text: string) => number
-  splitScene: (id: string) => void
-  summarizeScene: (id: string) => void
+  /* operasi scene langsung di timeline */
+  pilih: (id: string, seek?: boolean) => void
+  perbaruiScene: (id: string, patch: Partial<SceneProyek>, rekam?: boolean) => void
+  rekamRiwayat: () => void
+  aturDurasi: (id: string, durasi: number) => void
+  tambahScene: (afterId?: string) => void
+  hapusScene: (id: string) => void
+  duplikatScene: (id: string) => void
+  pisahSceneDipilih: () => void
+  pindahScene: (from: number, to: number) => void
 
-  // playback
+  /* assignment koleksi */
+  terapkanAnimasi: (tipe: TipeAnimasi, nama: string | null, target?: string | 'all') => void
+  terapkanTransisi: (nama: string | null, sceneId: string) => void
+  terapkanTransisiSemua: (nama: string | null) => void
+  terapkanStyle: (nama: string | null, target?: string | 'all') => void
+
+  /* playback */
   setTime: (t: number) => void
   setPlaying: (p: boolean) => void
   togglePlay: () => void
-  seekScene: (index: number) => void
-
-  // pengaturan global
-  setAspect: (a: Aspect) => void
+  keScene: (index: number) => void
   setZoom: (z: number) => void
-  setTransition: (t: number) => void
-  setVoice: (patch: Partial<VoiceState>) => void
-  setCaption: (patch: Partial<Caption>) => void
-  setMusic: (patch: Partial<EditorStore['music']>) => void
-  setProjectName: (n: string) => void
-  reset: () => void
+
+  /* riwayat */
+  undo: () => void
+  redo: () => void
 }
 
-export const useEditor = create<EditorStore>((set, get) => ({
-  scenes: INITIAL_SCENES,
-  selectedId: INITIAL_SCENES[0].id,
-  playing: false,
-  time: 0,
-  aspect: '9:16',
-  zoom: 40,
-  transition: 0.5,
-  voice: { voiceId: 'sari', speed: 1, pitch: 0, volume: 80 },
-  caption: {
-    enabled: true,
-    preset: 'karaoke',
-    font: 'poppins',
-    size: 22,
-    position: 'bottom',
-    highlight: true,
-    accent: '#FACC15',
-  },
-  music: { name: 'Lo-fi Chill — Optimis', volume: 40, enabled: true },
-  projectName: '3 Kebiasaan Pagi yang Mengubah Hidup',
-  customPresets: loadCustomPresets(),
+const MAKS_RIWAYAT = 60
 
-  applyPreset: (presetId, targetSceneId) => {
-    const { scenes, customPresets, selectedId } = get()
-    const preset = [...ANIMATION_PRESETS, ...customPresets].find((p) => p.id === presetId)
-    if (!preset) return
-    const patch: Partial<Scene> = {
-      motion: preset.motion,
-      animIn: preset.animIn,
-      animOut: preset.animOut,
-      loop: preset.loop,
-    }
-    if (targetSceneId === 'all') {
-      set({ scenes: scenes.map((s) => ({ ...s, ...patch })) })
-      return
-    }
-    const id = targetSceneId ?? selectedId
-    set({ scenes: scenes.map((s) => (s.id === id ? { ...s, ...patch } : s)) })
-  },
+export const useEditor = create<EditorStore>((set, get) => {
 
-  savePresetFromScene: (sceneId, name) => {
-    const { scenes, customPresets } = get()
-    const s = scenes.find((x) => x.id === sceneId)
-    if (!s || !name.trim()) return
-    const preset: AnimationPreset = {
-      id: `c-${newId()}`,
-      name: name.trim().slice(0, 28),
-      desc: `Preset dari scene: ${s.script.slice(0, 60)}${s.script.length > 60 ? '…' : ''}`,
-      bestFor: 'Preset buatan sendiri',
-      motion: s.motion,
-      animIn: s.animIn,
-      animOut: s.animOut,
-      loop: s.loop,
-      custom: true,
-    }
-    const next = [preset, ...customPresets]
-    persistCustomPresets(next)
-    set({ customPresets: next })
-  },
+  /* ── helper internal ── */
+  const simpan = () => {
+    const { judul, rasio, scenes } = get()
+    simpanProyek({ version: 1, judul, rasio, scenes })
+  }
 
-  deletePreset: (presetId) => {
-    const { customPresets } = get()
-    const next = customPresets.filter((p) => p.id !== presetId)
-    persistCustomPresets(next)
-    set({ customPresets: next })
-  },
+  /** Rekam kondisi sebelum mutasi (dipanggil di awal tiap aksi yang mengubah proyek). */
+  const dorongRiwayat = () => {
+    const { judul, rasio, scenes, selectedId, undoTumpuk } = get()
+    const snap: Snapshot = { judul, rasio, scenes: scenes.map((s) => ({ ...s })), selectedId }
+    set({ undoTumpuk: [...undoTumpuk.slice(-MAKS_RIWAYAT + 1), snap], redoTumpuk: [] })
+  }
 
-  addScene: (afterId) => {
-    const { scenes, selectedId } = get()
-    const idx = afterId ? scenes.findIndex((s) => s.id === afterId) : scenes.findIndex((s) => s.id === selectedId)
-    const at = idx < 0 ? scenes.length : idx + 1
-    const s = makeScene({ script: '' }, scenes.length)
-    const next = [...scenes]
-    next.splice(at, 0, s)
-    set({ scenes: next, selectedId: s.id, playing: false })
-  },
-
-  deleteScene: (id) => {
-    const { scenes } = get()
-    if (scenes.length <= 1) return
-    const idx = scenes.findIndex((s) => s.id === id)
-    const next = scenes.filter((s) => s.id !== id)
-    const newSel = next[Math.min(idx, next.length - 1)]
-    set({ scenes: next, selectedId: newSel.id, time: 0, playing: false })
-  },
-
-  duplicateScene: (id) => {
-    const { scenes } = get()
-    const idx = scenes.findIndex((s) => s.id === id)
-    if (idx < 0) return
-    const copy: Scene = { ...scenes[idx], id: newId() }
-    const next = [...scenes]
-    next.splice(idx + 1, 0, copy)
-    set({ scenes: next, selectedId: copy.id, playing: false })
-  },
-
-  moveScene: (id, dir) => {
-    const { scenes } = get()
-    const idx = scenes.findIndex((s) => s.id === id)
-    const to = idx + dir
-    if (idx < 0 || to < 0 || to >= scenes.length) return
-    const next = [...scenes]
-    ;[next[idx], next[to]] = [next[to], next[idx]]
-    set({ scenes: next, time: 0 })
-  },
-
-  reorder: (from, to) => {
-    const { scenes } = get()
-    if (from === to || from < 0 || to < 0 || from >= scenes.length || to >= scenes.length) return
-    const next = [...scenes]
-    const [moved] = next.splice(from, 1)
-    next.splice(to, 0, moved)
-    set({ scenes: next, time: 0 })
-  },
-
-  selectScene: (id, seek = true) => {
-    const { scenes, voice } = get()
-    set({ selectedId: id })
-    if (seek) {
-      const idx = scenes.findIndex((s) => s.id === id)
-      if (idx >= 0) {
-        let t = 0
-        for (let i = 0; i < idx; i++) t += sceneDuration(scenes[i], voice.speed)
-        set({ time: t })
-      }
-    }
-  },
-
-  updateScene: (id, patch) => {
-    const { scenes } = get()
-    set({ scenes: scenes.map((s) => (s.id === id ? { ...s, ...patch } : s)) })
-  },
-
-  importScript: (text) => {
-    const chunks = groupIntoScenes(splitSentences(text))
-    if (!chunks.length) return 0
-    const base = get().scenes.length
-    const created = chunks.map((c, i) =>
-      makeScene(
-        {
-          script: c,
-          image: IMG_STOCKS[(base + i) % IMG_STOCKS.length].img,
-          gradient: IMG_STOCKS[(base + i) % IMG_STOCKS.length].gradient,
-          assetLabel: `Stok: ${IMG_STOCKS[(base + i) % IMG_STOCKS.length].label}`,
-        },
-        base + i,
-      ),
-    )
-    set({ scenes: created, selectedId: created[0].id, time: 0, playing: false })
-    return created.length
-  },
-
-  splitScene: (id) => {
-    const { scenes } = get()
-    const idx = scenes.findIndex((s) => s.id === id)
-    if (idx < 0) return
-    const s = scenes[idx]
-    const parts = splitSentences(s.script)
-    if (parts.length < 2) return
-    const half = Math.ceil(parts.length / 2)
-    const a = parts.slice(0, half).join(' ')
-    const b = parts.slice(half).join(' ')
-    const copy: Scene = { ...s, script: a }
-    const nb: Scene = { ...s, id: newId(), script: b }
-    const next = [...scenes]
-    next.splice(idx, 1, copy)
-    next.splice(idx + 1, 0, nb)
-    set({ scenes: next, selectedId: copy.id })
-  },
-
-  summarizeScene: (id) => {
-    const { scenes } = get()
-    const s = scenes.find((x) => x.id === id)
-    if (!s) return
-    const parts = splitSentences(s.script)
-    if (parts.length < 2) return
-    const short = parts.slice(0, Math.max(1, Math.round(parts.length / 2))).join(' ')
-    set({ scenes: scenes.map((x) => (x.id === id ? { ...x, script: short } : x)) })
-  },
-
-  setTime: (t) => set({ time: t }),
-  setPlaying: (p) => set({ playing: p }),
-  togglePlay: () => {
-    const { playing, time, scenes, voice } = get()
-    const total = totalDuration(scenes, voice.speed)
-    if (!playing && time >= total) set({ time: 0, playing: true })
-    else set({ playing: !playing })
-  },
-  seekScene: (index) => {
-    const { scenes, voice } = get()
-    if (index < 0 || index >= scenes.length) return
-    let t = 0
-    for (let i = 0; i < index; i++) t += sceneDuration(scenes[i], voice.speed)
-    set({ time: t, selectedId: scenes[index].id })
-  },
-
-  setAspect: (a) => set({ aspect: a }),
-  setZoom: (z) => set({ zoom: z }),
-  setTransition: (t) => set({ transition: clampT(t) }),
-  setVoice: (patch) => set({ voice: { ...get().voice, ...patch } }),
-  setCaption: (patch) => set({ caption: { ...get().caption, ...patch } }),
-  setMusic: (patch) => set({ music: { ...get().music, ...patch } }),
-  setProjectName: (n) => set({ projectName: n }),
-  reset: () =>
+  const terapkanSnapshot = (snap: Snapshot) => {
     set({
-      scenes: INITIAL_SCENES,
-      selectedId: INITIAL_SCENES[0].id,
-      time: 0,
-      playing: false,
-    }),
-}))
+      judul: snap.judul,
+      rasio: snap.rasio,
+      scenes: snap.scenes.map((s) => ({ ...s })),
+      selectedId: snap.selectedId,
+    })
+    simpan()
+  }
 
-function clampT(t: number) {
-  return Math.min(1.5, Math.max(0.1, t))
-}
+  const awal = proyekContoh()
+
+  return {
+    judul: awal.judul,
+    rasio: awal.rasio,
+    scenes: awal.scenes,
+    selectedId: awal.scenes[0]?.id ?? '',
+    time: 0,
+    playing: false,
+    zoom: 48,
+    hydrasiSelesai: false,
+    undoTumpuk: [],
+    redoTumpuk: [],
+
+    hidrasi: () => {
+      const tersimpan = muatProyek()
+      if (tersimpan && tersimpan.scenes.length > 0) {
+        set({ judul: tersimpan.judul, rasio: tersimpan.rasio, scenes: tersimpan.scenes, selectedId: tersimpan.scenes[0].id, hydrasiSelesai: true })
+      } else {
+        simpan() // simpan proyek contoh sebagai titik awal
+        set({ hydrasiSelesai: true })
+      }
+    },
+
+    setJudul: (n) => {
+      dorongRiwayat()
+      set({ judul: n })
+      simpan()
+    },
+
+    setRasio: (r) => {
+      dorongRiwayat()
+      set({ rasio: r })
+      simpan()
+    },
+
+    muatNaskah: (raw, mode) => {
+      const scenes = dariNaskahMentah(raw)
+      if (!scenes.length) return 0
+      dorongRiwayat()
+      if (mode === 'ganti') {
+        set({ scenes, selectedId: scenes[0].id, time: 0, playing: false })
+      } else {
+        const gabung = [...get().scenes, ...scenes]
+        set({ scenes: gabung, selectedId: scenes[0].id, playing: false })
+      }
+      simpan()
+      return scenes.length
+    },
+
+    muatProyekJSON: (raw) => {
+      const h = proyekDariJSON(raw)
+      if (!h.ok) return { ok: false, error: h.error }
+      dorongRiwayat()
+      set({ judul: h.proyek.judul, rasio: h.proyek.rasio, scenes: h.proyek.scenes, selectedId: h.proyek.scenes[0].id, time: 0, playing: false })
+      simpan()
+      return { ok: true, jumlah: h.proyek.scenes.length }
+    },
+
+    muatContoh: () => {
+      const contoh = proyekContoh()
+      dorongRiwayat()
+      set({ judul: contoh.judul, rasio: contoh.rasio, scenes: contoh.scenes, selectedId: contoh.scenes[0].id, time: 0, playing: false })
+      simpan()
+    },
+
+    pilih: (id, seek = false) => {
+      set({ selectedId: id })
+      if (seek) {
+        const { scenes } = get()
+        const i = scenes.findIndex((s) => s.id === id)
+        if (i > 0) {
+          set({ time: totalDurasi(scenes.slice(0, i)) })
+        } else if (i === 0) {
+          set({ time: 0 })
+        }
+      }
+    },
+
+    perbaruiScene: (id, patch, rekam = true) => {
+      if (rekam) dorongRiwayat()
+      set({ scenes: get().scenes.map((s) => (s.id === id ? { ...s, ...patch } : s)) })
+      simpan()
+    },
+
+    rekamRiwayat: () => dorongRiwayat(),
+
+    aturDurasi: (id, durasi) => {
+      const nilai = clampDurasi(durasi)
+      const target = get().scenes.find((s) => s.id === id)
+      if (!target || target.durasi === nilai) return
+      dorongRiwayat()
+      set({ scenes: get().scenes.map((s) => (s.id === id ? { ...s, durasi: nilai } : s)) })
+      simpan()
+    },
+
+    tambahScene: (afterId) => {
+      dorongRiwayat()
+      const { scenes, selectedId } = get()
+      const acuan = afterId ?? selectedId
+      const i = acuan ? scenes.findIndex((s) => s.id === acuan) : scenes.length - 1
+      const s = sceneKosong(scenes.length)
+      const next = [...scenes]
+      next.splice(i < 0 ? scenes.length : i + 1, 0, s)
+      set({ scenes: next, selectedId: s.id, playing: false })
+      simpan()
+    },
+
+    hapusScene: (id) => {
+      const h = hapusScene(get().scenes, id)
+      if (!h) return
+      dorongRiwayat()
+      set({ scenes: h.scenes, selectedId: h.pilih, time: 0, playing: false })
+      simpan()
+    },
+
+    duplikatScene: (id) => {
+      const h = duplikatScene(get().scenes, id)
+      if (!h) return
+      dorongRiwayat()
+      set({ scenes: h.scenes, selectedId: h.idBaru_, playing: false })
+      simpan()
+    },
+
+    pisahSceneDipilih: () => {
+      const { selectedId } = get()
+      const h = pisahScene(get().scenes, selectedId)
+      if (!h) return
+      dorongRiwayat()
+      set({ scenes: h.scenes, selectedId: h.idBaru_ })
+      simpan()
+    },
+
+    pindahScene: (from, to) => {
+      const next = geserScene(get().scenes, from, to)
+      if (next === get().scenes) return
+      dorongRiwayat()
+      set({ scenes: next })
+      simpan()
+    },
+
+    terapkanAnimasi: (tipe, nama, target) => {
+      dorongRiwayat()
+      const { scenes, selectedId } = get()
+      const kunci: keyof SceneProyek = tipe === 'in' ? 'animIn' : tipe === 'out' ? 'animOut' : 'animLoop'
+      const patch = { [kunci]: nama } as Partial<SceneProyek>
+      if (target === 'all') {
+        set({ scenes: scenes.map((s) => ({ ...s, ...patch })) })
+      } else {
+        const id = target ?? selectedId
+        set({ scenes: scenes.map((s) => (s.id === id ? { ...s, ...patch } : s)) })
+      }
+      simpan()
+    },
+
+    terapkanTransisi: (nama, sceneId) => {
+      dorongRiwayat()
+      set({ scenes: get().scenes.map((s) => (s.id === sceneId ? { ...s, transisi: nama } : s)) })
+      simpan()
+    },
+
+    terapkanTransisiSemua: (nama) => {
+      dorongRiwayat()
+      set({ scenes: get().scenes.map((s) => ({ ...s, transisi: nama })) })
+      simpan()
+    },
+
+    terapkanStyle: (nama, target) => {
+      dorongRiwayat()
+      const { scenes, selectedId } = get()
+      if (target === 'all') {
+        set({ scenes: scenes.map((s) => ({ ...s, style: nama })) })
+      } else {
+        const id = target ?? selectedId
+        set({ scenes: scenes.map((s) => (s.id === id ? { ...s, style: nama } : s)) })
+      }
+      simpan()
+    },
+
+    setTime: (t) => set({ time: Math.max(0, t) }),
+    setPlaying: (p) => set({ playing: p }),
+    togglePlay: () => {
+      const { playing, time, scenes } = get()
+      const total = totalDurasi(scenes)
+      if (!playing && time >= total) set({ time: 0, playing: true })
+      else set({ playing: !playing })
+    },
+    keScene: (index) => {
+      const { scenes } = get()
+      if (index < 0 || index >= scenes.length) return
+      set({ time: totalDurasi(scenes.slice(0, index)), selectedId: scenes[index].id })
+    },
+    setZoom: (z) => set({ zoom: z }),
+
+    undo: () => {
+      const { undoTumpuk, redoTumpuk } = get()
+      const snap = undoTumpuk[undoTumpuk.length - 1]
+      if (!snap) return
+      const { judul, rasio, scenes, selectedId } = get()
+      const sekarang: Snapshot = { judul, rasio, scenes: scenes.map((s) => ({ ...s })), selectedId }
+      set({ undoTumpuk: undoTumpuk.slice(0, -1), redoTumpuk: [...redoTumpuk, sekarang].slice(-MAKS_RIWAYAT) })
+      terapkanSnapshot(snap)
+    },
+
+    redo: () => {
+      const { undoTumpuk, redoTumpuk } = get()
+      const snap = redoTumpuk[redoTumpuk.length - 1]
+      if (!snap) return
+      const { judul, rasio, scenes, selectedId } = get()
+      const sekarang: Snapshot = { judul, rasio, scenes: scenes.map((s) => ({ ...s })), selectedId }
+      set({ redoTumpuk: redoTumpuk.slice(0, -1), undoTumpuk: [...undoTumpuk, sekarang].slice(-MAKS_RIWAYAT) })
+      terapkanSnapshot(snap)
+    },
+  }
+})

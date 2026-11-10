@@ -164,6 +164,14 @@
   border-radius: 999px;
 }
 
+/* scrollbar tipis untuk toolbar timeline (horizontal) */
+.toolbar-scroll {
+  scrollbar-width: none;
+}
+.toolbar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 /* Keyframes preview preset animasi (loop 4s, alternate) */
 @keyframes kb-zoom-in {
   from { transform: scale(1); }
