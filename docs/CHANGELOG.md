@@ -5,6 +5,12 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.4.1] — 2026-11-11
+
+### Diubah
+- Ekspor statis (`output: "export"`) + workflow `.github/workflows/pages.yml` → deploy ke GitHub Pages
+  (tanpa Vercel/Termux). Rute dummy `/api` dihapus (tidak dipakai).
+
 ## [0.4.0] — 2026-11-11
 
 Tema: **Deteksi gaya langsung dari video (tanpa AI)** + serah-terima Generator → Editor.
