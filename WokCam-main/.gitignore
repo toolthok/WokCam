@@ -1,0 +1,38 @@
+# dependensi
+node_modules/
+.pnp
+.pnp.js
+
+# build Next.js
+.next/
+out/
+build/
+dist/
+
+# lingkungan & rahasia
+.env
+.env.*
+!.env.example
+
+# log
+*.log
+dev.log
+server.log
+
+# sistem operasi
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# editor
+.vscode/
+.idea/
+*.swp
+
+# cache & lint
+.eslintcache
+*.tsbuildinfo
+next-env.d.ts
+
+# prisma lokal (tidak dipakai editor saat ini)
+db/*.db

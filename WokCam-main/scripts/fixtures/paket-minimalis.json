@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "presets": [
+    { "nama": "Teks Minimalis Muncul", "tipe": "in", "gerakan": "fade", "arah": "", "durasi_ms": 600, "easing": "ease_out", "intensitas": 85, "tag": ["tenang", "fokus"], "sfx": "whoosh lembut" },
+    { "nama": "Judul Bergeser Elegan", "tipe": "in", "gerakan": "slide", "arah": "atas", "durasi_ms": 700, "easing": "ease_out", "intensitas": 75, "tag": ["fokus", "tenang"], "sfx": "swipe halus" },
+    { "nama": "Kartu Screenshot Mengambang", "tipe": "in", "gerakan": "zoom", "arah": "", "durasi_ms": 800, "easing": "ease_out", "intensitas": 90, "tag": ["fokus"], "sfx": "pop lembut" },
+    { "nama": "Elemen Menghilang Perlahan", "tipe": "out", "gerakan": "fade", "arah": "", "durasi_ms": 450, "easing": "ease_in", "intensitas": 80, "tag": ["tenang"], "sfx": "whoosh pendek" },
+    { "nama": "Gerakan Kamera Halus", "tipe": "loop", "gerakan": "zoom_in", "arah": "", "durasi_ms": 3000, "easing": "ease_in_out", "intensitas": 25, "tag": ["tenang", "fokus"], "sfx": "" },
+    { "nama": "Logo Melayang Lembut", "tipe": "loop", "gerakan": "pan_kanan", "arah": "", "durasi_ms": 3000, "easing": "ease_in_out", "intensitas": 20, "tag": ["tenang"], "sfx": "" }
+  ],
+  "transitions": [
+    { "nama": "Perpindahan Putih Bersih", "gerakan": "crossfade", "arah": "", "durasi_ms": 450, "easing": "ease_in_out", "tag": ["tenang", "fokus"], "sfx": "whoosh lembut" },
+    { "nama": "Geser Antar Konten", "gerakan": "slide", "arah": "atas", "durasi_ms": 400, "easing": "ease_in_out", "tag": ["fokus"], "sfx": "swipe pendek" },
+    { "nama": "Zoom Pergantian Screenshot", "gerakan": "zoom", "arah": "", "durasi_ms": 500, "easing": "ease_out", "tag": ["energik", "fokus"], "sfx": "pop digital" },
+    { "nama": "Fade Putih Minimalis", "gerakan": "crossfade", "arah": "", "durasi_ms": 650, "easing": "ease_in_out", "tag": ["tenang"], "sfx": "desir halus" }
+  ],
+  "styles": [
+    { "nama": "Tipografi Editorial Minimalis", "font": "montserrat_black", "ukuran": 56, "warna_teks": "#171717", "tebal_outline": 0, "warna_outline": "#FFFFFF", "posisi": "tengah", "tag": ["fokus", "tenang"] },
+    { "nama": "Judul Tebal Kontras", "font": "poppins_bold", "ukuran": 64, "warna_teks": "#111111", "tebal_outline": 0, "warna_outline": "#FFFFFF", "posisi": "tengah", "tag": ["fokus", "energik"] },
+    { "nama": "Teks Penjelasan Ringkas", "font": "poppins_bold", "ukuran": 32, "warna_teks": "#333333", "tebal_outline": 0, "warna_outline": "#FFFFFF", "posisi": "bawah", "tag": ["tenang", "fokus"] },
+    { "nama": "Label Logo dan Branding", "font": "montserrat_black", "ukuran": 28, "warna_teks": "#FFFFFF", "tebal_outline": 0, "warna_outline": "#FFFFFF", "posisi": "atas", "tag": ["tenang"] }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "presets": [
+    {
+      "nama": "Kabut Perlahan Muncul",
+      "gerakan": "fade",
+      "tipe": "in",
+      "arah": "",
+      "durasi_ms": 1800,
+      "easing": "ease_in_out",
+      "intensitas": 80,
+      "tag": [
+        "misterius",
+        "tenang"
+      ]
+    },
+    {
+      "nama": "Bayangan Merayap dari Bawah",
+      "gerakan": "slide",
+      "tipe": "in",
+      "arah": "bawah",
+      "durasi_ms": 1200,
+      "easing": "ease_out",
+      "intensitas": 90,
+      "tag": [
+        "misterius",
+        "dramatis"
+      ]
+    },
+    {
+      "nama": "Tirai Gelap Tersingkap",
+      "gerakan": "wipe",
+      "tipe": "in",
+      "arah": "kanan",
+      "durasi_ms": 900,
+      "easing": "ease_in_out",
+      "intensitas": 110,
+      "tag": [
+        "dramatis"
+      ]
+    },
+    {
+      "nama": "Sorotan Mendekat Tajam",
+      "gerakan": "zoom",
+      "tipe": "in",
+      "arah": "",
+      "durasi_ms": 1500,
+      "easing": "ease_in",
+      "intensitas": 130,
+      "tag": [
+        "dramatis",
+        "fokus"
+      ]
+    },
+    {
+      "nama": "Hantaman Teror Mendadak",
+      "gerakan": "bounce",
+      "tipe": "in",
+      "arah": "atas",
+      "durasi_ms": 500,
+      "easing": "spring",
+      "intensitas": 160,
+      "tag": [
+        "energik",
+        "dramatis"
+      ]
+    },
+    {
+      "nama": "Pintu Berderit Terbuka",
+      "gerakan": "wipe",
+      "tipe": "in",
+      "arah": "kiri",
+      "durasi_ms": 2200,
+      "easing": "linear",
+      "intensitas": 70,
+      "tag": [
+        "misterius",
+        "tenang"
+      ]
+    }
+  ]
+}
