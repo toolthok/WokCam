@@ -13,15 +13,18 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useEditor } from '@/lib/editor/store'
 import { RASIO_LIST } from '@/lib/editor/proyek'
+import { TombolSuara } from '@/components/editor/SuaraDialog'
 
 export function TopBar({
   onOpenImpor,
   onOpenEkspor,
   onOpenPanduan,
+  onOpenSuara,
 }: {
   onOpenImpor: () => void
   onOpenEkspor: () => void
   onOpenPanduan: () => void
+  onOpenSuara: () => void
 }) {
   const rasio = useEditor((s) => s.rasio)
   const setRasio = useEditor((s) => s.setRasio)
@@ -86,6 +89,8 @@ export function TopBar({
           <CircleHelp className="h-3.5 w-3.5" />
           <span className="hidden md:inline">Panduan</span>
         </Button>
+
+        <TombolSuara onClick={onOpenSuara} />
 
         <Button variant="ghost" size="sm" className="h-8 text-xs text-zinc-300" onClick={onOpenImpor} data-tour="topbar-impor">
           <FileUp className="h-3.5 w-3.5 text-emerald-400" />

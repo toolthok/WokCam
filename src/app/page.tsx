@@ -16,6 +16,7 @@ import { Timeline } from '@/components/editor/Timeline'
 import { Inspector } from '@/components/editor/Inspector'
 import { ImportNaskahDialog } from '@/components/editor/ImportNaskahDialog'
 import { ExportDialog } from '@/components/editor/ExportDialog'
+import { SuaraDialog, SuaraEngine } from '@/components/editor/SuaraDialog'
 import { PanduanEditor, KUNCI_PANDUAN } from '@/components/editor/PanduanEditor'
 import { useEditor } from '@/lib/editor/store'
 import { fmtJam, totalDurasi } from '@/lib/editor/proyek'
@@ -70,6 +71,7 @@ export default function Page() {
   const [imporOpen, setImporOpen] = useState(false)
   const [eksporOpen, setEksporOpen] = useState(false)
   const [panduanOpen, setPanduanOpen] = useState(false)
+  const [suaraOpen, setSuaraOpen] = useState(false)
   const hidrasi = useEditor((s) => s.hidrasi)
   const panduanMinta = useEditor((s) => s.panduanMinta)
 
@@ -133,10 +135,12 @@ export default function Page() {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950 text-foreground lg:h-screen lg:overflow-hidden">
       <PlaybackEngine />
+      <SuaraEngine />
       <TopBar
         onOpenImpor={() => setImporOpen(true)}
         onOpenEkspor={() => setEksporOpen(true)}
         onOpenPanduan={() => setPanduanOpen(true)}
+        onOpenSuara={() => setSuaraOpen(true)}
       />
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -154,6 +158,7 @@ export default function Page() {
 
       <ImportNaskahDialog open={imporOpen} onOpenChange={setImporOpen} />
       <ExportDialog open={eksporOpen} onOpenChange={setEksporOpen} />
+      <SuaraDialog open={suaraOpen} onOpenChange={setSuaraOpen} />
       <PanduanEditor open={panduanOpen} onTutup={tutupPanduan} />
     </div>
   )

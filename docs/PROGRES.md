@@ -1,10 +1,15 @@
 # PROGRES wokCam — Prototype Web
 
-> Diperbarui: 11 November 2026 · Versi repo: **v0.4.0 — "Deteksi Video + Kirim ke Editor"** (sebelumnya v0.3.0)
+> Diperbarui: 11 November 2026 · Versi repo: **v0.5.0 — "Suara TTS"** (sebelumnya v0.4.x: Deteksi Video + Kirim ke Editor)
 > Tahap PRD: ② web prototype (logika siap dipindah ke Kotlin; tahap ③ kerangka app)
 > Riwayat versi per rilis: lihat [CHANGELOG.md](CHANGELOG.md)
 
 ## Yang sudah selesai
+
+### Suara TTS (v0.5)
+- Dialog Suara + SuaraEngine (Web Speech API) sinkron playhead, ukur & cocokkan durasi. Perlu diuji di
+  Chrome Android: ketersediaan suara "id-ID", perilaku volume 0, jeda antar-scene.
+- Belum: suara ikut terekam di video (butuh TTS awan/berkas audio → fase render), pemetaan `sfx`.
 
 ### Deteksi dari video & serah-terima (v0.4)
 - **Deteksi Otomatis dari Video** (Koleksi): transisi, loop, animasi masuk/keluar, gaya teks → usulan

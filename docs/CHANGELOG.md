@@ -5,6 +5,22 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.5.0] — 2026-11-11
+
+Tema: **Suara (TTS) di editor** — gratis, tanpa key, tanpa server.
+
+### Ditambahkan
+- Tombol **Suara** di TopBar → dialog: pilih suara (Bahasa Indonesia diprioritaskan), kecepatan, nada, tes.
+- **SuaraEngine**: saat ▶ Putar, naskah tiap scene dibacakan mengikuti playhead (resume di tengah scene
+  melompati kata yang sudah lewat; loncat/ulang aman).
+- **Ukur & cocokkan durasi**: membacakan tiap scene (volume 0) untuk mengukur lama bicara nyata →
+  menyarankan durasi (langkah 0,5 dtk, 2–15 dtk) → Terapkan (bisa di-Undo).
+- `lib/editor/suara-util.ts` (murni) + `scripts/test-suara.ts` (16 uji).
+
+### Batas yang diketahui
+- Memakai Web Speech API: suara TIDAK ikut terekam ke berkas video; pengukuran volume 0 tidak
+  dihormati sebagian perangkat; belum diuji di browser nyata.
+
 ## [0.4.2] — 2026-11-11
 
 ### Dihapus
