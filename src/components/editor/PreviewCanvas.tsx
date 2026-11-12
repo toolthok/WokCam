@@ -18,7 +18,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { MessageSquareText, Pause, Play, SkipBack, SkipForward } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEditor } from '@/lib/editor/store'
-import { koleksiStore, type Koleksi, type PresetStyle } from '@/lib/preset-store'
+import { koleksiStore, type Koleksi, type PresetAnimasi, type PresetStyle } from '@/lib/preset-store'
 import { KF_KATA, bangunKeyframesAnimasi, cssEasing, gayaAwalAnimasi, kelasFont, polaAnimasiKata } from '@/components/preset-preview'
 import {
   fmtJam,
@@ -187,8 +187,26 @@ function LapisOverlay({ scene, playing }: { scene: SceneProyek; playing: boolean
 /* ── Kartu mengambang ala mockup video referensi — pengganti screenshot di prototype.
  * Deterministik (CSS murni): kartu putih miring dengan bayangan lembut + kerangka UI.
  * Di app Kotlin: Compose Card + drawBehind. Judul = scene.kartu. */
-function KartuMengambang({ judul, tinggi, playing }: { judul: string; tinggi: number; playing: boolean }) {
+function KartuMengambang({ judul, tinggi, playing, presetIn, presetOut, durasi }: {
+  judul: string; tinggi: number; playing: boolean; presetIn: PresetAnimasi | null; presetOut: PresetAnimasi | null; durasi: number
+}) {
   const ref = useRef<HTMLDivElement>(null)
+  const luarRef = useRef<HTMLDivElement>(null)
+
+  /* animasi masuk/keluar kartu — di pembungkus luar agar tidak bentrok dengan gerak melayang */
+  useEffect(() => {
+    const el = luarRef.current
+    if (!el || !playing) return
+    const anims: Animation[] = []
+    const timer: ReturnType<typeof setTimeout>[] = []
+    const hIn = presetIn ? bangunKeyframesAnimasi(presetIn) : null
+    if (hIn) anims.push(el.animate(hIn.kf, { duration: hIn.durasi, easing: hIn.easing, fill: 'both' }))
+    const hOut = presetOut ? bangunKeyframesAnimasi(presetOut) : null
+    if (hOut) timer.push(setTimeout(() => {
+      anims.push(el.animate(hOut.kf, { duration: hOut.durasi, easing: hOut.easing, fill: 'both' }))
+    }, Math.max(0, durasi * 1000 - hOut.durasi)))
+    return () => { timer.forEach(clearTimeout); anims.forEach((a) => a.cancel()) }
+  }, [presetIn, presetOut, playing, durasi])
 
   /* melayang pelan saat diputar — sama rasa dengan loop pan pada latar */
   useEffect(() => {
@@ -203,7 +221,7 @@ function KartuMengambang({ judul, tinggi, playing }: { judul: string; tinggi: nu
 
   const skala = tinggi / 1080
   return (
-    <div className="pointer-events-none absolute left-1/2 z-[4] w-[62%] -translate-x-1/2" style={{ top: '9%' }}>
+    <div ref={luarRef} className="pointer-events-none absolute left-1/2 z-[4] w-[62%] -translate-x-1/2" style={{ top: '9%' }}>
       <div
         ref={ref}
         className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white"
@@ -296,6 +314,23 @@ function LapisScene({
     return () => anim.cancel()
   }, [presetLoop, playing])
 
+  /* animasi masuk/keluar LATAR (loop latar sudah di atas) */
+  useEffect(() => {
+    const el = bgRef.current
+    if (!el || !playing) return
+    const pIn = presetDari(koleksi, scene.animLatar?.in, 'in')
+    const pOut = presetDari(koleksi, scene.animLatar?.out, 'out')
+    const anims: Animation[] = []
+    const timer: ReturnType<typeof setTimeout>[] = []
+    const hIn = pIn ? bangunKeyframesAnimasi(pIn) : null
+    if (hIn) anims.push(el.animate(hIn.kf, { duration: hIn.durasi, easing: hIn.easing, fill: 'both' }))
+    const hOut = pOut ? bangunKeyframesAnimasi(pOut) : null
+    if (hOut) timer.push(setTimeout(() => {
+      anims.push(el.animate(hOut.kf, { duration: hOut.durasi, easing: hOut.easing, fill: 'both' }))
+    }, Math.max(0, scene.durasi * 1000 - hOut.durasi)))
+    return () => { timer.forEach(clearTimeout); anims.forEach((a) => a.cancel()) }
+  }, [koleksi, scene.animLatar, scene.durasi, playing])
+
   /* animasi teks masuk → keluar. Gerakan "kata" TIDAK memakai keyframe container —
    * tiap kata punya animasi pop sendiri (dengan delay bertahap). */
   useEffect(() => {
@@ -361,14 +396,23 @@ function LapisScene({
       </div>
 
       {/* kartu mengambang ala mockup — konten scene (di atas latar, di bawah overlay/teks) */}
-      {scene.kartu && <KartuMengambang judul={scene.kartu} tinggi={tinggi} playing={playing} />}
+      {scene.kartu && (
+        <KartuMengambang
+          judul={scene.kartu}
+          tinggi={tinggi}
+          playing={playing}
+          presetIn={presetDari(koleksi, scene.animKartu?.in, 'in')}
+          presetOut={presetDari(koleksi, scene.animKartu?.out, 'out')}
+          durasi={scene.durasi}
+        />
+      )}
 
       {/* overlay efek — di ATAS latar/kartu & DI BAWAH teks: teks faceless video adalah raja,
           jadi strip bawah/bar sinema justru menjadi “latar” teks agar selalu terbaca */}
       <LapisOverlay scene={scene} playing={playing} />
 
       {/* aset foto/video (bisa banyak) — di atas overlay efek, di bawah teks */}
-      <LapisAset scene={scene} offset={offset} playing={playing} />
+      <LapisAset scene={scene} offset={offset} playing={playing} presets={koleksi.presets} />
 
       {/* teks scene — kata beranotasi (penanda tebal/miring) + style dari preset koleksi */}
       <div className={cn('absolute inset-0 z-[5] flex justify-center px-[7%]', posisiTeksClass(style?.posisi))}>
@@ -388,6 +432,10 @@ function LapisScene({
 }
 
 import { LapisAset } from '@/components/editor/AsetOverlay'
+
+/* preset animasi bernama dari koleksi (null bila kosong/tak ada) */
+const presetDari = (koleksi: Koleksi, nama: string | null | undefined, tipe: 'in' | 'out' | 'loop'): PresetAnimasi | null =>
+  nama ? koleksi.presets.find((p) => p.nama === nama && p.tipe === tipe) ?? null : null
 
 export function PreviewCanvas() {
   const scenes = useEditor((s) => s.scenes)

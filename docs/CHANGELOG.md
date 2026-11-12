@@ -5,6 +5,27 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.8.0] — 2026-11-11
+
+Tema: **Inspector per komponen (tab) + animasi & gaya di setiap komponen.**
+
+### Diubah
+- Inspector dikelompokkan dalam tab: **Scene** (durasi, mood, transisi) · **Teks** (isi, naskah, anim masuk/keluar,
+  gaya teks) · **Latar** (tema, overlay efek, anim masuk/keluar latar, gerak loop) · **Kartu** (judul, anim
+  masuk/keluar) · **Aset** (foto/video). Branding proyek tetap di atas.
+- `BarisAssign` dipindah ke komponen sendiri (`components/editor/BarisAssign.tsx`) agar dipakai juga di panel aset.
+
+### Ditambahkan
+- **Latar**: animasi masuk & keluar (`animLatar`); gerak loop tetap (`animLoop`) dan kini diatur di tab Latar.
+- **Kartu**: animasi masuk & keluar (`animKartu`).
+- **Aset**: gaya (Polos / Bulat / Bingkai / Bayangan), serta animasi masuk, keluar, dan loop per aset.
+  Animasi aset bisa di-scrub saat jeda (posisi sesuai playhead).
+- "→ semua" untuk anim latar dan kartu (menerapkan ke semua scene).
+
+### Batas yang diketahui
+- Animasi latar, kartu, dan teks baru berjalan saat diputar (belum saat scrub), seperti sebelumnya.
+- Belum diuji di browser: pastikan preset Koleksi yang tipenya cocok (in/out/loop) muncul di pemilih tiap tab.
+
 ## [0.7.0] — 2026-11-11
 
 Tema: **Lebih sederhana di timeline + aset overlay foto/video.**

@@ -26,9 +26,17 @@ import { koleksiStore, type Koleksi } from "@/lib/preset-store";
 
 /* Aset overlay: foto/video di atas scene. Berkas aslinya di IndexedDB (lihat aset-store.ts),
  * proyek hanya menyimpan metadatanya. Posisi & lebar dalam persen kanvas → skala ikut rasio. */
+/* Animasi satu komponen: masuk & keluar (nama preset Koleksi, null = tanpa). */
+export type AnimMasukKeluar = { in: string | null; out: string | null };
+export type GayaAset = "biasa" | "bulat" | "bingkai" | "bayangan";
+
 export type AsetOverlay = {
   id: string;
   tipe: "gambar" | "video";
+  gaya?: GayaAset;          // bentuk/bingkai/bayangan; undefined = biasa
+  animIn?: string | null;   // preset masuk aset (tipe in)
+  animOut?: string | null;  // preset keluar aset (tipe out)
+  animLoop?: string | null; // preset loop aset (tipe loop)
   nama: string;      // nama berkas asli (tampilan saja)
   x: number;         // pusat horizontal, 0-100 (%)
   y: number;         // pusat vertikal, 0-100 (%)
@@ -57,6 +65,8 @@ export type SceneProyek = {
   transisi: string | null; // batas scene INI → scene BERIKUTNYA
   style: string | null;
   aset?: AsetOverlay[]; // aset foto/video overlay; undefined = tanpa (data lama)
+  animLatar?: AnimMasukKeluar; // animasi masuk/keluar LATAR (loop latar = animLoop)
+  animKartu?: AnimMasukKeluar; // animasi masuk/keluar KARTU mengambang
 };
 
 export type Proyek = {
@@ -578,6 +588,8 @@ export function proyekDariJSON(raw: string): HasilMuatJSON {
       transisi: dipilih(sc.transisi_ke_berikutnya, sc.transisi),
       style: nama(sc.style),
       aset: asetDariJSON(sc.aset),
+      animLatar: animDariJSON(sc.animLatar, nama),
+      animKartu: animDariJSON(sc.animKartu, nama),
     });
   }
   return {
@@ -783,6 +795,10 @@ export function asetDariJSON(v: unknown): AsetOverlay[] {
       id: o.id,
       tipe,
       nama: typeof o.nama === "string" ? o.nama.slice(0, 80) : "",
+      gaya: ["biasa", "bulat", "bingkai", "bayangan"].includes(String(o.gaya)) ? (o.gaya as GayaAset) : "biasa",
+      animIn: typeof o.animIn === "string" && o.animIn ? o.animIn : null,
+      animOut: typeof o.animOut === "string" && o.animOut ? o.animOut : null,
+      animLoop: typeof o.animLoop === "string" && o.animLoop ? o.animLoop : null,
       x: angka(o.x, 0, 100, 50),
       y: angka(o.y, 0, 100, 50),
       lebar: angka(o.lebar, 5, 100, 45),
@@ -792,4 +808,11 @@ export function asetDariJSON(v: unknown): AsetOverlay[] {
     });
   }
   return out;
+}
+
+/** Normalisasi animasi masuk/keluar komponen (latar/kartu). */
+export function animDariJSON(v: unknown, nama: (x: unknown) => string | null): AnimMasukKeluar | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const o = v as Record<string, unknown>;
+  return { in: nama(o.in), out: nama(o.out) };
 }

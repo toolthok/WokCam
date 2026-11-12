@@ -8,8 +8,17 @@
 import { useRef, useState } from 'react'
 import { Film, ImagePlus, Image as ImageIcon, Trash2 } from 'lucide-react'
 import { useEditor } from '@/lib/editor/store'
-import type { AsetOverlay, SceneProyek } from '@/lib/editor/proyek'
+import type { AsetOverlay, GayaAset, SceneProyek } from '@/lib/editor/proyek'
 import { hapusBerkasAset, kecilkanGambar, simpanBerkasAset } from '@/lib/editor/aset-store'
+import { BarisAssign } from '@/components/editor/BarisAssign'
+import { cn } from '@/lib/utils'
+
+const GAYA_LIST: { id: GayaAset; nama: string }[] = [
+  { id: 'biasa', nama: 'Polos' },
+  { id: 'bulat', nama: 'Bulat' },
+  { id: 'bingkai', nama: 'Bingkai' },
+  { id: 'bayangan', nama: 'Bayangan' },
+]
 
 const MAKS_VIDEO = 80 * 1024 * 1024
 
@@ -116,6 +125,31 @@ export function AsetPanel({ scene }: { scene: SceneProyek }) {
                 format={(n) => `${n.toFixed(1)}s`} onMulai={rekamRiwayat} onUbah={(n) => ubah(a.id, { mulai: n })} />
               <Rentang label="Tampil (0 = sampai habis)" nilai={a.durasi} min={0} max={15} step={0.5}
                 format={(n) => (n === 0 ? 'sampai akhir' : `${n.toFixed(1)}s`)} onMulai={rekamRiwayat} onUbah={(n) => ubah(a.id, { durasi: n })} />
+            </div>
+            <div className="mt-2">
+              <span className="text-[10px] text-zinc-400">Gaya</span>
+              <div className="mt-1 grid grid-cols-4 gap-1">
+                {GAYA_LIST.map((g) => (
+                  <button
+                    key={g.id}
+                    onClick={() => { rekamRiwayat(); ubah(a.id, { gaya: g.id }) }}
+                    className={cn(
+                      'h-7 rounded border text-[10px] font-semibold',
+                      (a.gaya ?? 'biasa') === g.id ? 'border-violet-400 bg-violet-500/15 text-violet-200' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500',
+                    )}
+                  >
+                    {g.nama}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-2 border-t border-zinc-800 pt-1">
+              <BarisAssign label="Anim. Masuk" jenis="in" nilai={a.animIn ?? null}
+                onPilih={(n) => { rekamRiwayat(); ubah(a.id, { animIn: n }) }} />
+              <BarisAssign label="Anim. Keluar" jenis="out" nilai={a.animOut ?? null}
+                onPilih={(n) => { rekamRiwayat(); ubah(a.id, { animOut: n }) }} />
+              <BarisAssign label="Gerak Loop" jenis="loop" nilai={a.animLoop ?? null}
+                onPilih={(n) => { rekamRiwayat(); ubah(a.id, { animLoop: n }) }} />
             </div>
           </div>
         ))}
