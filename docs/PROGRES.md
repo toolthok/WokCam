@@ -1,10 +1,15 @@
 # PROGRES wokCam — Prototype Web
 
-> Diperbarui: 11 November 2026 · Versi repo: **v0.5.0 — "Suara TTS"** (sebelumnya v0.4.x: Deteksi Video + Kirim ke Editor)
+> Diperbarui: 11 November 2026 · Versi repo: **v0.6.0 — "Suara Gemini + tahan scene"** (sebelumnya v0.4.x: Deteksi Video + Kirim ke Editor)
 > Tahap PRD: ② web prototype (logika siap dipindah ke Kotlin; tahap ③ kerangka app)
 > Riwayat versi per rilis: lihat [CHANGELOG.md](CHANGELOG.md)
 
 ## Yang sudah selesai
+
+### Suara Gemini & tahan scene (v0.6)
+- Provider Gemini (key user, cache IndexedDB), tahan playhead sampai narasi selesai, durasi dari audio asli.
+- PERLU DIUJI dengan key nyata: nama model, batas kuota tier gratis, respons CORS dari browser.
+- Berikutnya: audio Gemini ikut ke render video (WAV per scene sudah ada di cache).
 
 ### Suara TTS (v0.5)
 - Dialog Suara + SuaraEngine (Web Speech API) sinkron playhead, ukur & cocokkan durasi. Perlu diuji di

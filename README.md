@@ -40,7 +40,7 @@ bun install          # atau npm install
 bun run dev          # http://localhost:3000
 ```
 
-## Menguji (464 uji · 12 rangkaian)
+## Menguji (495 uji · 13 rangkaian)
 
 ```bash
 bun scripts/test-parser.ts          # 37 — parser naskah
@@ -54,6 +54,7 @@ bun scripts/test-editor-proyek.ts   # 91 — model timeline: clamp durasi, reord
                                     #     serialisasi proyek, transisi, gelombang suara
 bun scripts/test-promo-style.ts     # 56 — pratinjau WAAPI: keyframes animasi/transisi/style
 bun scripts/test-tutorial.ts        # 68 — proyek tutorial: 8 scene, katalog latar/overlay
+bun scripts/test-suara-audio.ts     # 31 — audio Gemini: WAV, durasi, kunci cache, coba ulang
 bun scripts/test-suara.ts           # 16 — TTS: sisa teks, durasi disarankan, urutan suara
 bun scripts/test-video-analyzer.ts  # 18 — deteksi transisi/loop/animasi/gaya dari frame video
 ```

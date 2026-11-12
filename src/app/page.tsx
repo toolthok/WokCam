@@ -17,6 +17,7 @@ import { Inspector } from '@/components/editor/Inspector'
 import { ImportNaskahDialog } from '@/components/editor/ImportNaskahDialog'
 import { ExportDialog } from '@/components/editor/ExportDialog'
 import { SuaraDialog, SuaraEngine } from '@/components/editor/SuaraDialog'
+import { batasTahan } from '@/lib/editor/suara'
 import { PanduanEditor, KUNCI_PANDUAN } from '@/components/editor/PanduanEditor'
 import { useEditor } from '@/lib/editor/store'
 import { fmtJam, totalDurasi } from '@/lib/editor/proyek'
@@ -32,7 +33,10 @@ function PlaybackEngine() {
       last = now
       const st = useEditor.getState()
       const total = totalDurasi(st.scenes)
-      const next = st.time + dt
+      /* narasi scene masih berjalan → tahan playhead di akhir scene sampai suara selesai */
+      const lim = batasTahan()
+      const maju = st.time + dt
+      const next = lim !== null && maju >= lim ? Math.max(st.time, lim - 0.001) : maju
       if (next >= total) {
         useEditor.setState({ time: total, playing: false })
         return

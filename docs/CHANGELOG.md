@@ -5,6 +5,24 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.6.0] — 2026-11-11
+
+Tema: **Suara Gemini + suara tidak terpotong.**
+
+### Ditambahkan
+- Penyedia suara **Gemini TTS** (key milik user, dikirim langsung ke Google; audio asli, jalan di semua browser).
+  Audio per scene di-cache permanen (IndexedDB, kunci = teks+model+suara+gaya) → tak dibuat ulang,
+  hemat kuota tier gratis; otomatis menunggu & mencoba ulang saat kena batas (429).
+- **Tahan scene sampai suara selesai**: bila narasi masih berjalan di akhir scene, playhead menunggu
+  (berlaku untuk suara browser maupun Gemini). Bisa dimatikan.
+- Resume di tengah scene dengan audio Gemini tepat ke posisi playhead.
+- Setelah "Buat suara semua scene", durasi disarankan dari panjang audio sebenarnya → Terapkan (Undo).
+- `lib/editor/suara-audio.ts` (murni) + `scripts/test-suara-audio.ts` (31 uji).
+
+### Batas yang diketahui
+- Model Gemini TTS masih preview (nama bisa berubah; kolom model bisa diedit). Belum diuji dengan key nyata.
+- Suara belum otomatis tersambung ke ekspor video (fase render).
+
 ## [0.5.0] — 2026-11-11
 
 Tema: **Suara (TTS) di editor** — gratis, tanpa key, tanpa server.
