@@ -1,3 +1,4 @@
+import { kfTeksDariJSON } from "./teks-kf";
 /* ══════════ Model Proyek wokCam — kontrak tunggal (prototype web ⇄ app Kotlin) ══════════
  *
  * PERTANYAAN YANG DIJAWAB MODUL INI: "data timeline disimpan & diedit di mana?"
@@ -67,6 +68,7 @@ export type SceneProyek = {
   aset?: AsetOverlay[]; // aset foto/video overlay; undefined = tanpa (data lama)
   animLatar?: AnimMasukKeluar; // animasi masuk/keluar LATAR (loop latar = animLoop)
   animKartu?: AnimMasukKeluar; // animasi masuk/keluar KARTU mengambang
+  kfTeks?: { t: number; x: number; y: number }[]; // keyframe posisi teks (lihat teks-kf.ts)
 };
 
 export type Proyek = {
@@ -590,6 +592,7 @@ export function proyekDariJSON(raw: string): HasilMuatJSON {
       aset: asetDariJSON(sc.aset),
       animLatar: animDariJSON(sc.animLatar, nama),
       animKartu: animDariJSON(sc.animKartu, nama),
+      kfTeks: kfTeksDariJSON(sc.kfTeks ?? sc.teks_kf),
     });
   }
   return {
@@ -623,7 +626,18 @@ export function simpanProyek(p: Proyek): void {
  * Generator menaruh HasilNaskah yang sudah tervalidasi (termasuk "Perbaiki Ritme") di
  * localStorage; editor mengambil + menghapusnya saat hidrasi. Aman dibatalkan lewat Undo. */
 export const KUNCI_KIRIM = "wokcam.kirim.v1";
-export type Kiriman = { mode: "ganti" | "tambah"; hasil: HasilNaskah };
+export type Kiriman = { mode: "ganti" | "tambah"; hasil?: HasilNaskah; json?: string };
+
+/** Kirim JSON rancangan (sudah divalidasi di Generator) — diimpor ulang di editor lewat proyekDariJSON. */
+export function kirimKeEditorJson(json: string, mode: "ganti" | "tambah"): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    window.localStorage.setItem(KUNCI_KIRIM, JSON.stringify({ mode, json }));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function kirimKeEditor(hasil: HasilNaskah, mode: "ganti" | "tambah"): boolean {
   if (typeof window === "undefined") return false;
@@ -642,8 +656,8 @@ export function ambilKiriman(): Kiriman | null {
     if (!raw) return null;
     window.localStorage.removeItem(KUNCI_KIRIM);
     const o = JSON.parse(raw) as Partial<Kiriman>;
-    if (!o || !o.hasil || !Array.isArray((o.hasil as HasilNaskah).scenes)) return null;
-    return { mode: o.mode === "tambah" ? "tambah" : "ganti", hasil: o.hasil as HasilNaskah };
+    if (!o || (typeof o.json !== "string" && (!o.hasil || !Array.isArray((o.hasil as HasilNaskah).scenes)))) return null;
+    return { mode: o.mode === "tambah" ? "tambah" : "ganti", hasil: o.hasil as HasilNaskah | undefined, json: typeof o.json === "string" ? o.json : undefined };
   } catch {
     return null;
   }

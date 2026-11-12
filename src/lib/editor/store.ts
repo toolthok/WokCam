@@ -1,3 +1,4 @@
+import { catatKebutuhan } from './antrian'
 'use client'
 
 /* ══════════ Store Editor Timeline wokCam ══════════
@@ -175,7 +176,16 @@ export const useEditor = create<EditorStore>((set, get) => {
       /* serah-terima dari Generator: tersedia lewat Undo bila salah kirim */
       const kiriman = ambilKiriman()
       if (kiriman) {
-        const baru = dariHasilNaskah(kiriman.hasil)
+        let baru: SceneProyek[] = []
+        if (kiriman.json) {
+          const h = proyekDariJSON(kiriman.json)
+          if (h.ok) {
+            baru = h.proyek.scenes
+            try { catatKebutuhan((JSON.parse(kiriman.json) as { kebutuhan_baru?: unknown }).kebutuhan_baru) } catch { /* abaikan */ }
+          }
+        } else if (kiriman.hasil) {
+          baru = dariHasilNaskah(kiriman.hasil)
+        }
         if (baru.length) {
           dorongRiwayat()
           if (kiriman.mode === 'ganti') set({ scenes: baru, selectedId: baru[0].id, time: 0, playing: false })
@@ -224,6 +234,7 @@ export const useEditor = create<EditorStore>((set, get) => {
     muatProyekJSON: (raw) => {
       const h = proyekDariJSON(raw)
       if (!h.ok) return { ok: false, error: h.error }
+      try { catatKebutuhan((JSON.parse(raw) as { kebutuhan_baru?: unknown }).kebutuhan_baru) } catch { /* bukan JSON murni */ }
       dorongRiwayat()
       set({ judul: h.proyek.judul, rasio: h.proyek.rasio, badge: h.proyek.badge, watermark: h.proyek.watermark, scenes: h.proyek.scenes, selectedId: h.proyek.scenes[0].id, time: 0, playing: false })
       simpan()

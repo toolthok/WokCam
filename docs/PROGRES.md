@@ -1,6 +1,6 @@
 # PROGRES wokCam — Prototype Web
 
-> Diperbarui: 11 November 2026 · Versi repo: **v0.9.0 — "Render video + geser aset di pratinjau"** (sebelumnya v0.4.x: Deteksi Video + Kirim ke Editor)
+> Diperbarui: 11 November 2026 · Versi repo: **v0.10.0 — "Prompt rancangan ±50% + keyframe teks"** (lihat docs/ANTRIAN.md untuk antrian) (sebelumnya v0.4.x: Deteksi Video + Kirim ke Editor)
 > Tahap PRD: ② web prototype (logika siap dipindah ke Kotlin; tahap ③ kerangka app)
 > Riwayat versi per rilis: lihat [CHANGELOG.md](CHANGELOG.md)
 

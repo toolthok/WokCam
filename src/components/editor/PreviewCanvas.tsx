@@ -277,6 +277,10 @@ function LapisScene({
 }) {
   const bgRef = useRef<HTMLDivElement>(null)
   const teksRef = useRef<HTMLDivElement>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const selectedId = useEditor((s) => s.selectedId)
+  const seretTeks = useRef<{ sx: number; sy: number; x0: number; y0: number; rect: DOMRect } | null>(null)
+  const aktifTeks = selectedId === scene.id
 
   const style = scene.style ? koleksi.styles.find((p) => p.nama === scene.style) ?? null : null
   const presetIn = scene.animIn ? koleksi.presets.find((p) => p.nama === scene.animIn && p.tipe === 'in') ?? null : null
@@ -370,6 +374,30 @@ function LapisScene({
   }, [presetIn, presetOut, polaKata, playing, scene.id, scene.durasi])
 
   const gayaAwalTeks = presetIn && playing && !polaKata ? gayaAwalAnimasi(presetIn) : undefined
+  /* posisi teks per keyframe (null = tata letak bawaan gaya teks) */
+  const posKf = scene.kfTeks?.length ? posTeksDiWaktu(scene.kfTeks, offset) : null
+  const posAwal = posKf ?? { x: 50, y: style?.posisi === 'atas' ? 14 : style?.posisi === 'tengah' ? 50 : 84 }
+
+  /* geser teks: setiap gerak menulis keyframe pada posisi playhead saat ini */
+  const tekanTeks = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!aktifTeks) return
+    const host = wrapRef.current?.offsetParent as HTMLElement | null
+    if (!host) return
+    e.stopPropagation(); e.preventDefault()
+    useEditor.getState().rekamRiwayat()
+    seretTeks.current = { sx: e.clientX, sy: e.clientY, x0: posAwal.x, y0: posAwal.y, rect: host.getBoundingClientRect() }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const gerakTeks = (e: React.PointerEvent<HTMLDivElement>) => {
+    const s = seretTeks.current
+    if (!s) return
+    const x = Math.min(100, Math.max(0, s.x0 + ((e.clientX - s.sx) / s.rect.width) * 100))
+    const y = Math.min(100, Math.max(0, s.y0 + ((e.clientY - s.sy) / s.rect.height) * 100))
+    const st = useEditor.getState()
+    const sc = st.scenes.find((x2) => x2.id === scene.id)
+    st.perbaruiScene(scene.id, { kfTeks: tulisKfTeks(sc?.kfTeks ?? [], offset, x, y) }, false)
+  }
+  const lepasTeks = () => { seretTeks.current = null }
 
   return (
     <>
@@ -415,8 +443,27 @@ function LapisScene({
       <LapisAset scene={scene} offset={offset} playing={playing} presets={koleksi.presets} />
 
       {/* teks scene — kata beranotasi (penanda tebal/miring) + style dari preset koleksi */}
-      <div className={cn('absolute inset-0 z-[5] flex justify-center px-[7%]', posisiTeksClass(style?.posisi))}>
-        <div ref={teksRef} className="max-w-full text-center" style={gayaAwalTeks}>
+      <div
+        ref={wrapRef}
+        className={cn('z-[5] pointer-events-none', posKf ? 'absolute' : cn('absolute inset-0 flex justify-center px-[7%]', posisiTeksClass(style?.posisi)))}
+        style={posKf ? { left: `${posKf.x}%`, top: `${posKf.y}%`, width: '86%', transform: 'translate(-50%,-50%)' } : undefined}
+      >
+        <div
+          ref={teksRef}
+          className="max-w-full text-center"
+          style={{
+            ...gayaAwalTeks,
+            pointerEvents: aktifTeks ? 'auto' : undefined,
+            touchAction: aktifTeks ? 'none' : undefined,
+            cursor: aktifTeks ? 'move' : undefined,
+            outline: aktifTeks ? '1.5px dashed rgba(167,139,250,0.85)' : undefined,
+            outlineOffset: aktifTeks ? 6 : undefined,
+          }}
+          onPointerDown={tekanTeks}
+          onPointerMove={gerakTeks}
+          onPointerUp={lepasTeks}
+          onPointerCancel={lepasTeks}
+        >
           <span className={cn('inline-block break-words', style ? kelasFont(style.font) : 'font-extrabold')} style={gayaTeks(style, tinggi)}>
             {kataSegmen.map((seg, i) => (
               <span key={i} data-kata={polaKata ? '' : undefined} className="inline-block whitespace-pre" style={gayaKata(seg, style?.warna_teks ?? '#FFFFFF')}>
@@ -432,6 +479,7 @@ function LapisScene({
 }
 
 import { LapisAset } from '@/components/editor/AsetOverlay'
+import { posTeksDiWaktu, tulisKfTeks } from '@/lib/editor/teks-kf'
 
 /* preset animasi bernama dari koleksi (null bila kosong/tak ada) */
 const presetDari = (koleksi: Koleksi, nama: string | null | undefined, tipe: 'in' | 'out' | 'loop'): PresetAnimasi | null =>

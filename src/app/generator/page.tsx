@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { bangunPromptRancangan } from "@/lib/editor/prompt-rancangan";
+import { kirimKeEditorJson } from "@/lib/editor/proyek";
 
 import { MOODS, fmtDurasi, parseNaskah, terapkanRitme, type HasilNaskah } from "@/lib/naskah-parser";
 import { simpanEntriKeKoleksi, uraiJSONToleran } from "@/lib/preset-store";
@@ -293,6 +295,11 @@ export default function GeneratorPage() {
   const router = useRouter();
   const [kirimGalat, setKirimGalat] = useState("");
   const kirim = (mode: "ganti" | "tambah") => {
+    if (rancanganJson) {
+      if (kirimKeEditorJson(rancanganJson, mode)) router.push("/");
+      else setKirimGalat("Penyimpanan browser penuh/dinonaktifkan — gunakan Salin JSON lalu Impor di editor.");
+      return;
+    }
     if (!hasilNaskah) return;
     if (kirimKeEditor(hasilNaskah, mode)) router.push("/");
     else setKirimGalat("Penyimpanan browser penuh/dinonaktifkan — gunakan Salin JSON lalu Impor di editor.");
@@ -315,7 +322,7 @@ export default function GeneratorPage() {
     const el = document.getElementById("paste-naskah") as HTMLTextAreaElement | null;
     if (el) el.value = teks;
     setPasteInfo("");
-    setHasilNaskah(parseNaskah(teks, durasi));
+    terapkanTeks(teks);
   };
 
   /* ── state preset ── */
@@ -326,6 +333,37 @@ export default function GeneratorPage() {
   const [pasteInfoPreset, setPasteInfoPreset] = useState("");
   const [simpanInfo, setSimpanInfo] = useState("");
 
+  const [modeRancangan, setModeRancangan] = useState(false);
+  const [rancanganJson, setRancanganJson] = useState<string | null>(null);
+  const [rancanganInfo, setRancanganInfo] = useState("");
+  /* tempel: JSON rancangan (mode visual) atau naskah teks biasa */
+  const terapkanTeks = (teks: string) => {
+    const t = teks.trim();
+    if (t.startsWith("{")) {
+      try {
+        const o = JSON.parse(t) as { scenes?: unknown[]; kebutuhan_baru?: unknown[] };
+        if (!Array.isArray(o.scenes) || o.scenes.length === 0) throw new Error("tanpa scenes");
+        const jumlahDurasi = (o.scenes as { durasi?: number }[]).reduce((a, s) => a + Number(s.durasi ?? 0), 0);
+        setRancanganJson(t);
+        setHasilNaskah(null);
+        setRancanganInfo(`✓ JSON rancangan: ${o.scenes.length} scene · total ${jumlahDurasi} dtk · ${o.kebutuhan_baru?.length ?? 0} kebutuhan baru (masuk antrian)`);
+        return;
+      } catch {
+        setRancanganInfo("JSON tidak valid — pastikan hasil AI hanya berisi JSON (tanpa teks tambahan).");
+        return;
+      }
+    }
+    setRancanganJson(null);
+    setRancanganInfo("");
+    setHasilNaskah(parseNaskah(teks, durasi));
+  };
+  const promptRancangan = useMemo(
+    () => bangunPromptRancangan({
+      topik: topik || "(isi topik)", platform, rasio, durasi, gaya, penonton: penonton || "umum", cta: cta || "ikutkan", jumlahScene,
+    }),
+    [topik, platform, rasio, durasi, gaya, penonton, cta, jumlahScene]
+  );
+  const promptAktif = modeRancangan ? promptRancangan : promptNaskah;
   const promptPreset = useMemo(() => bangunPromptPreset(jenis, jumlah, vibe || "beragam"), [jenis, jumlah, vibe]);
 
   const tempelPreset = async () => {
@@ -471,11 +509,17 @@ export default function GeneratorPage() {
             {/* Prompt */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
               <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-violet-300">2 · Salin Prompt ke ChatGPT/Claude</h2>
-              <textarea readOnly value={promptNaskah} rows={10}
+              <div className="mb-2 grid grid-cols-2 gap-2">
+                <button onClick={() => setModeRancangan(false)}
+                  className={`min-h-[40px] rounded-lg text-xs font-bold ${!modeRancangan ? "bg-violet-600 text-white" : "border border-zinc-700 text-zinc-400"}`}>Naskah saja</button>
+                <button onClick={() => setModeRancangan(true)}
+                  className={`min-h-[40px] rounded-lg text-xs font-bold ${modeRancangan ? "bg-violet-600 text-white" : "border border-zinc-700 text-zinc-400"}`}>Rancangan visual (±50%)</button>
+              </div>
+              <textarea readOnly value={promptAktif} rows={10}
                 className="w-full rounded-lg border border-zinc-700 bg-zinc-950 p-3 font-mono text-[11px] leading-relaxed text-zinc-300" />
               <div className="mt-2 flex items-center justify-between gap-3">
-                <span className="text-xs text-zinc-500">{promptNaskah.length} karakter · {jumlahScene} scene</span>
-                <button onClick={() => flash(promptNaskah, "pn")} className={`${btnUtama} max-w-[240px]`}>
+                <span className="text-xs text-zinc-500">{promptAktif.length} karakter · {jumlahScene} scene{modeRancangan ? " · JSON lengkap" : ""}</span>
+                <button onClick={() => flash(promptAktif, "pn")} className={`${btnUtama} max-w-[240px]`}>
                   {copied === "pn" ? "✓ Tersalin!" : "Salin Prompt"}
                 </button>
               </div>
@@ -498,7 +542,7 @@ export default function GeneratorPage() {
               <button
                 onClick={() => {
                   const el = document.getElementById("paste-naskah") as HTMLTextAreaElement | null;
-                  setHasilNaskah(parseNaskah(el?.value ?? "", durasi));
+                  terapkanTeks(el?.value ?? "");
                 }}
                 className={`${btnUtama} mt-3`}
               >
@@ -509,6 +553,16 @@ export default function GeneratorPage() {
                 <p className="mt-3 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{hasilNaskah.errorGlobal}</p>
               )}
 
+              {rancanganJson && (
+                <div className="mt-3 space-y-2 rounded-lg border border-violet-500/40 bg-violet-500/10 p-3">
+                  <p className="text-xs text-violet-200">{rancanganInfo}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => kirim("ganti")} className={btnUtama}>🚀 Kirim ke Editor</button>
+                    <button onClick={() => kirim("tambah")} className={btnKedua}>➕ Tambah ke proyek</button>
+                  </div>
+                  {kirimGalat && <p className="text-[11px] text-red-400">{kirimGalat}</p>}
+                </div>
+              )}
               {hasilNaskah && !hasilNaskah.errorGlobal && hasilNaskah.scenes.length > 0 && (
                 <div className="mt-4 space-y-3">
                   <div className="grid grid-cols-2 gap-2 text-center">

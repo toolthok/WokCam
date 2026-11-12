@@ -16,7 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useEditor } from '@/lib/editor/store'
 import { BarisAssign } from '@/components/editor/BarisAssign'
 import { AsetPanel } from '@/components/editor/AsetPanel'
-import { fmtDurasi, kelasLatar, LATAR_PRESET, OVERLAY_PRESET, totalDurasi, type AnimMasukKeluar, type SceneProyek } from '@/lib/editor/proyek'
+import { fmtDurasi, hitungTiming, kelasLatar, LATAR_PRESET, OVERLAY_PRESET, totalDurasi, type AnimMasukKeluar, type SceneProyek } from '@/lib/editor/proyek'
+import { posTeksDiWaktu, tulisKfTeks, type KfTeks } from '@/lib/editor/teks-kf'
 import { MOODS } from '@/lib/naskah-parser'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +39,7 @@ export function Inspector({ className }: { className?: string }) {
   const terapkanStyle = useEditor((s) => s.terapkanStyle)
   const terapkanLatar = useEditor((s) => s.terapkanLatar)
   const terapkanOverlay = useEditor((s) => s.terapkanOverlay)
+  const waktu = useEditor((s) => s.time)
 
   const scene = scenes.find((s) => s.id === selectedId) ?? scenes[0] ?? null
   const index = scene ? scenes.findIndex((s) => s.id === scene.id) : -1
@@ -45,6 +47,10 @@ export function Inspector({ className }: { className?: string }) {
   const estBicara = Math.ceil(kata / 2.4)
 
   const [sliderDurasi, setSliderDurasi] = useState<number | null>(null)
+
+  /* keyframe posisi teks */
+  const offsetScene = scene ? Math.min(scene.durasi, Math.max(0, waktu - (hitungTiming(scenes)[index]?.mulai ?? 0))) : 0
+  const setKf = (kf: KfTeks[]) => { if (scene) perbaruiScene(scene.id, { kfTeks: kf }, false) }
 
   /* animasi masuk/keluar latar & kartu: disimpan per scene, "→ semua" menerapkan ke seluruh scene */
   const setAnim = (kunci: 'animLatar' | 'animKartu', k: 'in' | 'out', n: string | null) => {
@@ -193,6 +199,59 @@ export function Inspector({ className }: { className?: string }) {
                   onPilih={(n) => terapkanAnimasi('out', n, scene.id)} onSemua={(n) => terapkanAnimasi('out', n, 'all')} />
                 <BarisAssign label="Gaya Teks" jenis="style" nilai={scene.style}
                   onPilih={(n) => terapkanStyle(n, scene.id)} onSemua={(n) => terapkanStyle(n, 'all')} />
+              </div>
+              <div className={kartuTab}>
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wide text-zinc-400">Posisi teks (keyframe)</span>
+                  <button
+                    onClick={() => {
+                      rekamRiwayat()
+                      const p = posTeksDiWaktu(scene.kfTeks ?? [], offsetScene) ?? { x: 50, y: 50 }
+                      setKf(tulisKfTeks(scene.kfTeks ?? [], offsetScene, p.x, p.y, 0.001))
+                    }}
+                    className="text-[10px] text-violet-300 hover:text-violet-200"
+                    title="Tambah keyframe pada posisi playhead"
+                  >
+                    + di playhead
+                  </button>
+                </div>
+                {(scene.kfTeks ?? []).length === 0 ? (
+                  <p className="text-[10px] leading-relaxed text-zinc-500">
+                    Belum ada keyframe — teks memakai posisi bawaan gaya. Seret teks di pratinjau (saat scene dipilih), atau tekan “+ di playhead”.
+                  </p>
+                ) : (
+                  (scene.kfTeks ?? []).map((k, i, arr) => (
+                    <div key={i} className="mb-2 rounded-md border border-zinc-800 bg-zinc-950 p-2">
+                      <div className="mb-1 flex items-center justify-between text-[10px] text-zinc-400">
+                        <span>Keyframe {i + 1} · {k.t.toFixed(1)}s</span>
+                        <button
+                          onClick={() => { rekamRiwayat(); setKf(arr.filter((_, j) => j !== i)) }}
+                          className="text-zinc-500 hover:text-red-400"
+                          aria-label="Hapus keyframe"
+                        >
+                          hapus
+                        </button>
+                      </div>
+                      {([['t', 'Waktu (dtk)', 0, scene.durasi, 0.1], ['x', 'X', 0, 100, 1], ['y', 'Y', 0, 100, 1]] as const).map(([kunci, lbl, lo, hi, step]) => (
+                        <label key={kunci} className="flex items-center gap-2 text-[10px] text-zinc-400">
+                          <span className="w-[68px] shrink-0">{lbl}</span>
+                          <input
+                            type="range" min={lo} max={hi} step={step} value={k[kunci]}
+                            onPointerDown={rekamRiwayat}
+                            onChange={(e) => setKf(arr.map((x, j) => (j === i ? { ...x, [kunci]: +e.target.value } : x)).sort((a, b) => a.t - b.t))}
+                            className="h-6 flex-1 accent-violet-500"
+                          />
+                          <span className="w-10 text-right font-mono text-zinc-300">{kunci === 't' ? k.t.toFixed(1) : `${k[kunci]}%`}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ))
+                )}
+                {(scene.kfTeks ?? []).length > 0 && (
+                  <button onClick={() => { rekamRiwayat(); setKf([]) }} className="mt-1 text-[10px] text-zinc-500 hover:text-zinc-300">
+                    Hapus semua keyframe
+                  </button>
+                )}
               </div>
             </TabsContent>
 

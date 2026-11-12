@@ -15,6 +15,7 @@ import { useEditor } from '@/lib/editor/store'
 import {
   IDENT, animasiLoop, animasiMasukKeluar, gabung, transisiPose, warnaDariKelas, resolusiRasio, type Pose,
 } from '@/lib/editor/render-math'
+import { posTeksDiWaktu } from '@/lib/editor/teks-kf'
 
 export type ProgresRender = { persen: number; t: number; total: number };
 type Media = { tipe: 'gambar' | 'video'; el: HTMLImageElement | HTMLVideoElement; w: number; h: number };
@@ -212,6 +213,9 @@ function gambarTeks(k: Konteks, sc: SceneProyek, off: number) {
   const blok = baris.length * lh;
   const posisi = style?.posisi ?? 'bawah';
   const y0 = posisi === 'atas' ? H * 0.07 : posisi === 'tengah' ? (H - blok) / 2 : H * 0.91 - blok;
+  const pk = sc.kfTeks?.length ? posTeksDiWaktu(sc.kfTeks, off) : null;
+  const cxT = pk ? (pk.x / 100) * W : W / 2;
+  const yAwal = pk ? (pk.y / 100) * H - blok / 2 : y0;
 
   /* animasi masuk kata-demi-kata (jendela ≤55% scene) */
   const pIn = presetDari(koleksi, sc.animIn, 'in');
@@ -222,11 +226,11 @@ function gambarTeks(k: Konteks, sc: SceneProyek, off: number) {
     animasiMasukKeluar(pIn, off, sc.durasi, 'in'),
     animasiMasukKeluar(presetDari(koleksi, sc.animOut, 'out'), off, sc.durasi, 'out'),
   );
-  denganPose(k, pose, W / 2, y0 + blok / 2, () => {
+  denganPose(k, pose, cxT, yAwal + blok / 2, () => {
     baris.forEach((bar, bi) => {
       const total = bar.reduce((s, b, i) => s + b.lebar + (i ? ukurKata(ctx, ' ', b.font) : 0), 0);
-      let x = (W - total) / 2;
-      const y = y0 + bi * lh + lh / 2;
+      let x = cxT - total / 2;
+      const y = yAwal + bi * lh + lh / 2;
       ctx.textBaseline = 'middle';
       for (const b of bar) {
         let alpha = 1;

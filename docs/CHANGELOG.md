@@ -5,6 +5,26 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.10.0] — 2026-11-12
+
+Tema: **Prompt Generator mengerjakan ±50% + teks bisa digeser per keyframe.**
+
+### Ditambahkan
+- **Mode Rancangan visual** di Generator: prompt meminta JSON proyek lengkap (scene, durasi, teks,
+  gaya, animasi, transisi, latar, overlay, kartu, keyframe teks, slot aset, dan `kebutuhan_baru`).
+  Hasil JSON ditempel → ringkasan → Kirim ke Editor / Tambah ke proyek.
+- **Keyframe posisi teks**: geser teks langsung di pratinjau (saat scene dipilih) — setiap gerak menulis
+  keyframe pada posisi playhead; posisi di antara keyframe digeser linear. Tab Teks punya editor keyframe
+  (waktu, X, Y, hapus, + di playhead). Renderer memakai posisi yang sama.
+- **Antrian kebutuhan**: `kebutuhan_baru` dari hasil AI dicatat ke antrian lokal (`wokcam.antrian.v1`).
+  Daftar utama ada di `docs/ANTRIAN.md`.
+- `lib/editor/teks-kf.ts` (murni) + `scripts/test-teks-kf.ts` (11 uji), `lib/editor/prompt-rancangan.ts`, `lib/editor/antrian.ts`.
+
+### Batas yang diketahui
+- Keyframe teks belum tampil di timeline; hanya di tab Teks dan drag di pratinjau.
+- Slot aset dari AI (`aset_slot`) belum punya UI; ditolak diam-diam.
+- Belum diuji di perangkat nyata.
+
 ## [0.9.2] — 2026-11-11
 
 ### Diperbaiki
