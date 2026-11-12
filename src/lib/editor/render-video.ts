@@ -320,7 +320,8 @@ function progresDi(segs: ReturnType<typeof hitungTiming>, i: number, t: number, 
 /* ── perekaman ── */
 
 function pilihMime(): string {
-  const kandidat = ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  /* WebM diutamakan: rekaman MP4 di Chrome Android berhenti menulis data setelah beberapa detik */
+  const kandidat = ['video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'];
   return kandidat.find((m) => MediaRecorder.isTypeSupported(m)) ?? '';
 }
 
@@ -354,6 +355,7 @@ export async function renderVideo(opts: {
   const audioCtx = new AC();
   const dest = audioCtx.createMediaStreamDestination();
   let suaraCatatan = 'tanpa suara';
+  let adaAudio = 0;
   if (p.provider === 'gemini' && p.gKey) {
     suaraCatatan = 'suara Gemini';
     for (let i = 0; i < scenes.length; i++) {
@@ -366,6 +368,7 @@ export async function renderVideo(opts: {
         src.buffer = decoded;
         src.connect(dest);
         src.start(audioCtx.currentTime + segs[i].mulai);
+        adaAudio++;
       } catch { /* satu scene gagal didekode — lewati */ }
     }
   } else {
@@ -374,7 +377,8 @@ export async function renderVideo(opts: {
 
   const media = await muatMedia(scenes);
   const stream = canvas.captureStream(30);
-  dest.stream.getAudioTracks().forEach((tr) => stream.addTrack(tr));
+  /* track audio kosong (tanpa sumber) membuat perekaman berhenti di sebagian perangkat — hanya dipasang bila ada suara */
+  if (adaAudio > 0) dest.stream.getAudioTracks().forEach((tr) => stream.addTrack(tr));
   const mime = pilihMime();
   const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 4_000_000 });
   const chunks: Blob[] = [];

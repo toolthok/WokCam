@@ -5,6 +5,13 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.9.2] — 2026-11-11
+
+### Diperbaiki
+- Render hanya menghasilkan ±1,4 dtk dari 52 dtk, padahal loop render berjalan penuh (3100 frame).
+  Perekaman berhenti menulis data. Perubahan: WebM (VP8) diutamakan dibanding MP4, dan track audio
+  kosong tidak lagi dipasang bila tidak ada suara.
+
 ## [0.9.1] — 2026-11-11
 
 ### Diperbaiki / Diagnosis
