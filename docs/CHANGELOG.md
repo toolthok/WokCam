@@ -5,6 +5,13 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.9.1] — 2026-11-11
+
+### Diperbaiki / Diagnosis
+- Video render terbaca sangat pendek (±0,01 dtk) di perangkat uji. Penyebab belum dipastikan.
+  Dialog render sekarang menampilkan durasi target, durasi waktu nyata, jumlah frame, dan durasi
+  yang terbaca dari berkas, sehingga bisa dibedakan: rekaman berhenti awal, atau metadata berkas rusak.
+
 ## [0.9.0] — 2026-11-11
 
 Tema: **Render video di browser + geser/ubah aset langsung di pratinjau.**

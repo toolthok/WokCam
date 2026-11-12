@@ -328,7 +328,7 @@ export function dukungRender(): boolean {
   return typeof window !== 'undefined' && typeof MediaRecorder !== 'undefined' && 'captureStream' in HTMLCanvasElement.prototype;
 }
 
-export type HasilRender = { blob: Blob; mime: string; ext: string; suara: string };
+export type HasilRender = { blob: Blob; mime: string; ext: string; suara: string; frames: number; detikNyata: number };
 
 export async function renderVideo(opts: {
   onProgres: (p: ProgresRender) => void;
@@ -387,11 +387,15 @@ export async function renderVideo(opts: {
   return new Promise<HasilRender>((resolve, reject) => {
     const mulai = performance.now();
     let selesai = false;
+    let frames = 0;
     rec.onstop = () => {
       audioCtx.close().catch(() => {});
       const jenis = mime || rec.mimeType || 'video/webm';
       const ext = jenis.includes('mp4') ? 'mp4' : 'webm';
-      resolve({ blob: new Blob(chunks, { type: jenis.split(';')[0] }), mime: jenis, ext, suara: suaraCatatan });
+      resolve({
+        blob: new Blob(chunks, { type: jenis.split(';')[0] }), mime: jenis, ext, suara: suaraCatatan,
+        frames, detikNyata: (performance.now() - mulai) / 1000,
+      });
     };
     rec.onerror = () => { if (!selesai) reject(new Error('Perekaman gagal di perangkat ini.')); };
 
@@ -412,6 +416,7 @@ export async function renderVideo(opts: {
         return;
       }
       k.t = t;
+      frames++;
       gambarBingkai(k, scenes, segs, total, '', st.badge, st.watermark);
       opts.onProgres({ persen: Math.round((t / total) * 100), t, total });
       requestAnimationFrame(langkah);

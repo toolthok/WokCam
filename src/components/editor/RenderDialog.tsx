@@ -13,6 +13,23 @@ import { dukungRender, renderVideo, type HasilRender } from '@/lib/editor/render
 
 type Fase = 'siap' | 'jalan' | 'selesai' | 'galat'
 
+/* baca durasi yang TERBACA dari berkas (metadata WebM/MP4 hasil rekaman sering tidak lengkap) */
+function ukurDurasiFile(url: string): Promise<number> {
+  return new Promise((res) => {
+    const v = document.createElement('video');
+    const selesai = (d: number) => { v.removeAttribute('src'); v.load(); res(d); };
+    const t = setTimeout(() => selesai(NaN), 6000);
+    v.preload = 'auto'; v.muted = true;
+    v.onloadedmetadata = () => {
+      if (Number.isFinite(v.duration)) { clearTimeout(t); selesai(v.duration); return; }
+      v.currentTime = 1e101; // paksa browser menghitung durasi
+      v.ontimeupdate = () => { if (Number.isFinite(v.duration)) { clearTimeout(t); v.ontimeupdate = null; selesai(v.duration); } };
+    };
+    v.onerror = () => { clearTimeout(t); selesai(NaN); };
+    v.src = url;
+  });
+}
+
 export function TombolRender() {
   const [open, setOpen] = useState(false)
   return (
@@ -32,7 +49,7 @@ export function RenderDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   const [fase, setFase] = useState<Fase>('siap')
   const [persen, setPersen] = useState(0)
   const [galat, setGalat] = useState('')
-  const [hasil, setHasil] = useState<(HasilRender & { url: string }) | null>(null)
+  const [hasil, setHasil] = useState<(HasilRender & { url: string; durasiFile: number }) | null>(null)
   const sinyal = useRef({ batal: false })
 
   const mulai = async () => {
@@ -40,7 +57,9 @@ export function RenderDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     setGalat(''); setPersen(0); setFase('jalan')
     try {
       const h = await renderVideo({ onProgres: (p) => setPersen(p.persen), sinyal: sinyal.current })
-      setHasil({ ...h, url: URL.createObjectURL(h.blob) })
+      const url = URL.createObjectURL(h.blob)
+      const durasiFile = await ukurDurasiFile(url)
+      setHasil({ ...h, url, durasiFile })
       setFase('selesai')
     } catch (e) {
       setGalat(e instanceof Error ? e.message : 'Render gagal.')
@@ -99,6 +118,15 @@ export function RenderDialog({ open, onOpenChange }: { open: boolean; onOpenChan
             <div className="space-y-3">
               <p className="text-xs text-emerald-300">✓ Selesai — {hasil.ext.toUpperCase()} · {(hasil.blob.size / 1048576).toFixed(1)} MB</p>
               <p className="text-[11px] text-zinc-500">Audio: {hasil.suara}</p>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-2.5 font-mono text-[11px] text-zinc-400">
+                <div>durasi target : {Math.round(total)} dtk</div>
+                <div>durasi render : {hasil.detikNyata.toFixed(1)} dtk (waktu nyata)</div>
+                <div>frame direkam : {hasil.frames}</div>
+                <div>durasi file   : {Number.isFinite(hasil.durasiFile) ? hasil.durasiFile.toFixed(2) + ' dtk' : 'tidak terbaca'}</div>
+                {Number.isFinite(hasil.durasiFile) && hasil.durasiFile < total * 0.8 && (
+                  <div className="pt-1 text-amber-300">⚠ File lebih pendek dari target. Kirim angka ini ke developer.</div>
+                )}
+              </div>
               <a href={hasil.url} download={nama} className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-violet-600 text-sm font-bold text-white">
                 <Download className="h-4 w-4" /> Unduh {nama}
               </a>
