@@ -5,6 +5,11 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.10.1] — 2026-11-12
+
+### Diperbaiki
+- Build GitHub Actions gagal: `'use client'` harus berada di baris paling atas. Import antrian di `store.ts` dipindah ke bawahnya.
+
 ## [0.10.0] — 2026-11-12
 
 Tema: **Prompt Generator mengerjakan ±50% + teks bisa digeser per keyframe.**
