@@ -66,6 +66,8 @@ function BarisAssign({
   )
 }
 
+import { AsetPanel } from '@/components/editor/AsetPanel'
+
 export function Inspector({ className }: { className?: string }) {
   const scenes = useEditor((s) => s.scenes)
   const selectedId = useEditor((s) => s.selectedId)
@@ -186,6 +188,9 @@ export function Inspector({ className }: { className?: string }) {
             />
             <p className="mt-1 text-[10px] text-zinc-500">Kartu putih melayang miring — pengganti screenshot di video referensi.</p>
           </div>
+
+          {/* aset overlay: foto / video (banyak per scene) */}
+          <AsetPanel scene={scene} />
 
           {/* durasi */}
           <div>

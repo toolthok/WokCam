@@ -10,7 +10,6 @@
 
 import { useEffect, useState } from 'react'
 import { TopBar } from '@/components/editor/TopBar'
-import { SceneList } from '@/components/editor/SceneList'
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
 import { Timeline } from '@/components/editor/Timeline'
 import { Inspector } from '@/components/editor/Inspector'
@@ -148,8 +147,6 @@ export default function Page() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <SceneList className="order-2 lg:order-1 lg:w-60 lg:shrink-0 max-lg:max-h-72" />
-
         <main className="order-1 flex min-h-0 min-w-0 flex-1 flex-col lg:order-2">
           <PreviewCanvas />
           <Timeline />

@@ -1,6 +1,6 @@
 # PROGRES wokCam — Prototype Web
 
-> Diperbarui: 11 November 2026 · Versi repo: **v0.6.0 — "Suara Gemini + tahan scene"** (sebelumnya v0.4.x: Deteksi Video + Kirim ke Editor)
+> Diperbarui: 11 November 2026 · Versi repo: **v0.7.0 — "Timeline sederhana + aset overlay"** (sebelumnya v0.4.x: Deteksi Video + Kirim ke Editor)
 > Tahap PRD: ② web prototype (logika siap dipindah ke Kotlin; tahap ③ kerangka app)
 > Riwayat versi per rilis: lihat [CHANGELOG.md](CHANGELOG.md)
 

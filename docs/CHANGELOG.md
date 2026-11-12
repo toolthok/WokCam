@@ -5,6 +5,27 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.7.0] — 2026-11-11
+
+Tema: **Lebih sederhana di timeline + aset overlay foto/video.**
+
+### Diubah
+- Daftar scene di bawah/samping timeline **dihapus** dari layout. Pilih scene cukup dengan klik blok di timeline.
+- **Klik scene saat ▶ Putar** → video otomatis jeda dan jarum langsung di awal scene yang dipilih.
+
+### Ditambahkan
+- **Aset overlay foto & video** per scene (Inspector → "Aset overlay"): banyak aset sekaligus (mis. foto 1,
+  foto 2, video 3). Atur posisi X/Y, lebar, transparansi, detik muncul, dan durasi tampil.
+- Video overlay mengikuti playhead (main, jeda, scrub) dan selalu dibisukan.
+- Gambar dikecilkan otomatis (≤1280 px) sebelum disimpan; berkas disimpan di IndexedDB perangkat.
+- `lib/editor/aset-store.ts` (penyimpanan berkas), `components/editor/AsetOverlay.tsx` (render),
+  `components/editor/AsetPanel.tsx` (Inspector).
+
+### Batas yang diketahui
+- Aset hanya tersimpan di perangkat yang sama (berkas tidak ikut ekspor JSON).
+- Posisi diatur lewat slider; geser langsung di pratinjau belum ada.
+- Hapus-aset tidak bisa dikembalikan dengan Undo (berkasnya sudah dibuang).
+
 ## [0.6.0] — 2026-11-11
 
 Tema: **Suara Gemini + suara tidak terpotong.**

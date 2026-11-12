@@ -78,7 +78,7 @@ const LANGKAH: Langkah[] = [
   {
     target: 'inspector',
     judul: '10 · Inspector (panel kanan)',
-    isi: 'Panel kanan berisi semua pengaturan scene yang sama — plus kartu mengambang (mockup putih melayang ala screenshot) dan tombol “→ semua” untuk menerapkan ke SELURUH scene sekaligus. Panel kiri: daftar scene untuk navigasi cepat + naik/turunkan urutan.',
+    isi: 'Panel kanan berisi semua pengaturan scene yang sama — plus kartu mengambang (mockup putih melayang ala screenshot) dan tombol “→ semua” untuk menerapkan ke SELURUH scene sekaligus. Daftar scene di panel kiri sudah dihapus: klik scene di timeline untuk memilih (sekaligus jeda & jarum ke awal scene).',
   },
   {
     target: 'topbar-impor',

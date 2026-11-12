@@ -241,13 +241,10 @@ export const useEditor = create<EditorStore>((set, get) => {
     pilih: (id, seek = false) => {
       set({ selectedId: id })
       if (seek) {
+        /* pilih scene = jeda + jarum langsung di awal scene (tidak melompat saat sedang putar) */
         const { scenes } = get()
         const i = scenes.findIndex((s) => s.id === id)
-        if (i > 0) {
-          set({ time: totalDurasi(scenes.slice(0, i)) })
-        } else if (i === 0) {
-          set({ time: 0 })
-        }
+        if (i >= 0) set({ time: i > 0 ? totalDurasi(scenes.slice(0, i)) : 0, playing: false })
       }
     },
 

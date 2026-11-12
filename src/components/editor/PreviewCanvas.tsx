@@ -249,11 +249,13 @@ function LapisScene({
   koleksi,
   tinggi,
   playing,
+  offset,
 }: {
   scene: SceneProyek
   koleksi: Koleksi
   tinggi: number
   playing: boolean
+  offset: number
 }) {
   const bgRef = useRef<HTMLDivElement>(null)
   const teksRef = useRef<HTMLDivElement>(null)
@@ -365,6 +367,9 @@ function LapisScene({
           jadi strip bawah/bar sinema justru menjadi “latar” teks agar selalu terbaca */}
       <LapisOverlay scene={scene} playing={playing} />
 
+      {/* aset foto/video (bisa banyak) — di atas overlay efek, di bawah teks */}
+      <LapisAset scene={scene} offset={offset} playing={playing} />
+
       {/* teks scene — kata beranotasi (penanda tebal/miring) + style dari preset koleksi */}
       <div className={cn('absolute inset-0 z-[5] flex justify-center px-[7%]', posisiTeksClass(style?.posisi))}>
         <div ref={teksRef} className="max-w-full text-center" style={gayaAwalTeks}>
@@ -381,6 +386,8 @@ function LapisScene({
     </>
   )
 }
+
+import { LapisAset } from '@/components/editor/AsetOverlay'
 
 export function PreviewCanvas() {
   const scenes = useEditor((s) => s.scenes)
@@ -404,6 +411,9 @@ export function PreviewCanvas() {
 
   const layerA = trans ? scenes[trans.indexA] : cur
   const layerB = trans ? scenes[trans.indexB] : null
+  /* jarak playhead dari awal masing-masing scene (untuk video overlay & aset) */
+  const offA = trans ? time - (segs[trans.indexA]?.mulai ?? 0) : time - (segs[curIndex]?.mulai ?? 0)
+  const offB = trans ? time - (segs[trans.indexB]?.mulai ?? 0) : 0
   const gayaA = trans ? gayaTransisiKeluar(trans.gerakan, trans.presetArah, trans.q) : undefined
   const gayaB = trans ? gayaTransisiMasuk(trans.gerakan, trans.presetArah, trans.q) : undefined
   /* latar terang (kertas*) → gradien pembacaan gelap stage dilepas */
@@ -427,12 +437,12 @@ export function PreviewCanvas() {
             >
               {size.w > 0 && layerA && (
                 <div className="absolute inset-0" style={gayaA}>
-                  <LapisScene scene={layerA} koleksi={koleksi} tinggi={size.h} playing={playing} />
+                  <LapisScene scene={layerA} koleksi={koleksi} tinggi={size.h} playing={playing} offset={offA} />
                 </div>
               )}
               {size.w > 0 && layerB && (
                 <div className="absolute inset-0" style={gayaB}>
-                  <LapisScene scene={layerB} koleksi={koleksi} tinggi={size.h} playing={playing} />
+                  <LapisScene scene={layerB} koleksi={koleksi} tinggi={size.h} playing={playing} offset={offB} />
                 </div>
               )}
 

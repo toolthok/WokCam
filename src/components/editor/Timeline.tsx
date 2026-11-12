@@ -199,7 +199,7 @@ export function Timeline() {
       if (geser.ke !== geser.dari) pindahScene(geser.dari, geser.ke)
       setGeser(null)
     } else if (seret) {
-      pilih(seret.id) // klik tanpa drag = pilih scene
+      pilih(seret.id, true) // klik tanpa drag = pilih + jeda + jarum ke awal scene
     }
   }
 

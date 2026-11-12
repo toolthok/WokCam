@@ -24,6 +24,20 @@ import { koleksiStore, type Koleksi } from "@/lib/preset-store";
 
 /* ── Tipe ═══ */
 
+/* Aset overlay: foto/video di atas scene. Berkas aslinya di IndexedDB (lihat aset-store.ts),
+ * proyek hanya menyimpan metadatanya. Posisi & lebar dalam persen kanvas → skala ikut rasio. */
+export type AsetOverlay = {
+  id: string;
+  tipe: "gambar" | "video";
+  nama: string;      // nama berkas asli (tampilan saja)
+  x: number;         // pusat horizontal, 0-100 (%)
+  y: number;         // pusat vertikal, 0-100 (%)
+  lebar: number;     // lebar, 5-100 (% kanvas)
+  opacity: number;   // 0-1
+  mulai: number;     // dtk sejak awal scene (0-15)
+  durasi: number;    // dtk tampil; 0 = sampai akhir scene
+};
+
 export type SceneProyek = {
   id: string;
   naskah: string; // dibacakan TTS
@@ -42,6 +56,7 @@ export type SceneProyek = {
   animLoop: string | null;
   transisi: string | null; // batas scene INI → scene BERIKUTNYA
   style: string | null;
+  aset?: AsetOverlay[]; // aset foto/video overlay; undefined = tanpa (data lama)
 };
 
 export type Proyek = {
@@ -562,6 +577,7 @@ export function proyekDariJSON(raw: string): HasilMuatJSON {
       animLoop: dipilih(anim.loop, sc.animLoop),
       transisi: dipilih(sc.transisi_ke_berikutnya, sc.transisi),
       style: nama(sc.style),
+      aset: asetDariJSON(sc.aset),
     });
   }
   return {
@@ -747,6 +763,33 @@ export function gelombangSuara(seed: number, count: number): number[] {
   for (let i = 0; i < count; i++) {
     const v = Math.abs(Math.sin(seed * 37.7 + i * 1.31) * Math.cos(i * 0.61 + seed * 0.3));
     out.push(0.18 + 0.82 * Math.pow(v, 0.8));
+  }
+  return out;
+}
+
+/** Normalisasi aset dari JSON/autosave — angka dijepit, tipe asing dibuang (toleran). */
+export function asetDariJSON(v: unknown): AsetOverlay[] {
+  if (!Array.isArray(v)) return [];
+  const angka = (x: unknown, lo: number, hi: number, bawaan: number) => {
+    const n = Number(x);
+    return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : bawaan;
+  };
+  const out: AsetOverlay[] = [];
+  for (const it of v.slice(0, 12)) {
+    const o = (it ?? {}) as Record<string, unknown>;
+    const tipe = o.tipe === "video" ? "video" : o.tipe === "gambar" ? "gambar" : null;
+    if (!tipe || typeof o.id !== "string" || !o.id) continue;
+    out.push({
+      id: o.id,
+      tipe,
+      nama: typeof o.nama === "string" ? o.nama.slice(0, 80) : "",
+      x: angka(o.x, 0, 100, 50),
+      y: angka(o.y, 0, 100, 50),
+      lebar: angka(o.lebar, 5, 100, 45),
+      opacity: angka(o.opacity, 0, 1, 1),
+      mulai: angka(o.mulai, 0, 15, 0),
+      durasi: angka(o.durasi, 0, 15, 0),
+    });
   }
   return out;
 }
