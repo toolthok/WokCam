@@ -5,6 +5,27 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.9.0] — 2026-11-11
+
+Tema: **Render video di browser + geser/ubah aset langsung di pratinjau.**
+
+### Ditambahkan
+- **Render video** (tombol 🎬 Render di TopBar). Menggambar ulang setiap scene ke kanvas, memutar audio
+  Gemini per scene, lalu merekam dengan MediaRecorder. Format: MP4 bila didukung, jika tidak WebM.
+  Hasil bisa diunduh, atau dibagikan lewat share sheet Android.
+- Render memakai resolusi 720×1280 (9:16), 1080×1080 (1:1), atau 1280×720 (16:9).
+- **Geser & ubah ukuran aset di pratinjau**: seret aset untuk memindahkan, seret kotak di pojok kanan bawah
+  untuk mengubah lebar. Aktif saat scene dipilih.
+- `lib/editor/render-math.ts` (murni: animasi masuk/keluar, loop, transisi, warna) + `scripts/test-render-math.ts` (23 uji).
+- `lib/editor/render-video.ts` (renderer kanvas) dan `components/editor/RenderDialog.tsx` (UI).
+
+### Batas yang diketahui
+- Render berjalan **sebenar waktu**: video 60 dtk membutuhkan ±60 dtk. Layar harus tetap menyala.
+- Suara browser (Web Speech) tidak ikut; hanya audio Gemini.
+- Font memakai sans-serif sistem, bukan font pratinjau. Grain dan bokeh tidak digambar.
+- Animasi di renderer memakai kurva linear, jadi gerakannya bisa sedikit berbeda dari pratinjau.
+- Belum diuji di perangkat nyata. Hasilnya perlu dicek visual sebelum dianggap identik dengan pratinjau.
+
 ## [0.8.0] — 2026-11-11
 
 Tema: **Inspector per komponen (tab) + animasi & gaya di setiap komponen.**

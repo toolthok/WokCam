@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useEditor } from '@/lib/editor/store'
 import { RASIO_LIST } from '@/lib/editor/proyek'
 import { TombolSuara } from '@/components/editor/SuaraDialog'
+import { TombolRender } from '@/components/editor/RenderDialog'
 
 export function TopBar({
   onOpenImpor,
@@ -91,6 +92,7 @@ export function TopBar({
         </Button>
 
         <TombolSuara onClick={onOpenSuara} />
+        <TombolRender />
 
         <Button variant="ghost" size="sm" className="h-8 text-xs text-zinc-300" onClick={onOpenImpor} data-tour="topbar-impor">
           <FileUp className="h-3.5 w-3.5 text-emerald-400" />

@@ -11,6 +11,7 @@ import type { AsetOverlay, GayaAset, SceneProyek } from '@/lib/editor/proyek'
 import { urlAset, urlAsetSinkron } from '@/lib/editor/aset-store'
 import { bangunKeyframesAnimasi } from '@/components/preset-preview'
 import type { PresetAnimasi } from '@/lib/preset-store'
+import { useEditor } from '@/lib/editor/store'
 
 function useUrlAset(id: string): string | null {
   const [u, setU] = useState<string | null>(() => urlAsetSinkron(id))
@@ -39,13 +40,43 @@ const gayaBentuk = (g: GayaAset | undefined): React.CSSProperties => {
 const cari = (presets: PresetAnimasi[], nama: string | null | undefined, tipe: 'in' | 'out' | 'loop') =>
   nama ? presets.find((p) => p.nama === nama && p.tipe === tipe) ?? null : null
 
-function ItemAset({ a, rel, playing, tampilMs, presets }: {
-  a: AsetOverlay; rel: number; playing: boolean; tampilMs: number; presets: PresetAnimasi[]
+function ItemAset({ a, rel, playing, tampilMs, presets, sceneId, aktif }: {
+  a: AsetOverlay; rel: number; playing: boolean; tampilMs: number; presets: PresetAnimasi[]; sceneId: string; aktif: boolean
 }) {
   const url = useUrlAset(a.id)
   const vRef = useRef<HTMLVideoElement>(null)
   const elRef = useRef<HTMLDivElement>(null)
+  const outerRef = useRef<HTMLDivElement>(null)
   const animsRef = useRef<Animation[]>([])
+  const seret = useRef<{ mode: 'pindah' | 'ubah'; sx: number; sy: number; x0: number; y0: number; l0: number; rect: DOMRect } | null>(null)
+
+  /* tulis perubahan posisi/ukuran ke scene (tanpa riwayat per gerak — riwayat dicatat sekali saat tekan) */
+  const ubahAset = (patch: Partial<AsetOverlay>) => {
+    const st = useEditor.getState()
+    const sc = st.scenes.find((s) => s.id === sceneId)
+    if (!sc) return
+    st.perbaruiScene(sceneId, { aset: (sc.aset ?? []).map((x) => (x.id === a.id ? { ...x, ...patch } : x)) }, false)
+  }
+  const onTekan = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!aktif) return
+    const host = outerRef.current?.offsetParent as HTMLElement | null
+    if (!host) return
+    e.stopPropagation()
+    e.preventDefault()
+    const mode = (e.target as HTMLElement).dataset.handle ? 'ubah' : 'pindah'
+    useEditor.getState().rekamRiwayat()
+    seret.current = { mode, sx: e.clientX, sy: e.clientY, x0: a.x, y0: a.y, l0: a.lebar, rect: host.getBoundingClientRect() }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const onGerak = (e: React.PointerEvent<HTMLDivElement>) => {
+    const s = seret.current
+    if (!s) return
+    const dx = ((e.clientX - s.sx) / s.rect.width) * 100
+    const dy = ((e.clientY - s.sy) / s.rect.height) * 100
+    if (s.mode === 'pindah') ubahAset({ x: Math.min(100, Math.max(0, s.x0 + dx)), y: Math.min(100, Math.max(0, s.y0 + dy)) })
+    else ubahAset({ lebar: Math.min(100, Math.max(5, s.l0 + dx)) })
+  }
+  const onLepas = () => { seret.current = null }
 
   /* animasi masuk/keluar/loop — dibuat sekali (dalam keadaan jeda), lalu dikendalikan lewat currentTime */
   useEffect(() => {
@@ -90,7 +121,26 @@ function ItemAset({ a, rel, playing, tampilMs, presets }: {
 
   if (!url) return null
   return (
-    <div className="pointer-events-none absolute z-[4]" style={{ left: `${a.x}%`, top: `${a.y}%`, width: `${a.lebar}%`, opacity: a.opacity, transform: 'translate(-50%,-50%)' }}>
+    <div
+      ref={outerRef}
+      className="absolute z-[4]"
+      style={{
+        left: `${a.x}%`, top: `${a.y}%`, width: `${a.lebar}%`, opacity: a.opacity, transform: 'translate(-50%,-50%)',
+        pointerEvents: aktif ? 'auto' : 'none', touchAction: aktif ? 'none' : undefined,
+        cursor: aktif ? 'move' : undefined, outline: aktif ? '1.5px dashed rgba(167,139,250,0.9)' : undefined,
+      }}
+      onPointerDown={onTekan}
+      onPointerMove={onGerak}
+      onPointerUp={onLepas}
+      onPointerCancel={onLepas}
+    >
+      {aktif && (
+        <div
+          data-handle="1"
+          className="absolute -bottom-2 -right-2 h-4 w-4 cursor-nwse-resize rounded-sm border border-violet-200 bg-violet-500"
+          style={{ touchAction: 'none' }}
+        />
+      )}
       <div ref={elRef} className="block w-full" style={gayaBentuk(a.gaya)}>
         {a.tipe === 'video' ? (
           <video
@@ -116,6 +166,7 @@ function ItemAset({ a, rel, playing, tampilMs, presets }: {
 export function LapisAset({ scene, offset, playing, presets }: {
   scene: SceneProyek; offset: number; playing: boolean; presets: PresetAnimasi[]
 }) {
+  const selectedId = useEditor((s) => s.selectedId)
   const daftar = scene.aset ?? []
   if (!daftar.length) return null
   return (
@@ -124,7 +175,7 @@ export function LapisAset({ scene, offset, playing, presets }: {
         const tampil = durasiTampil(a, scene.durasi)
         const rel = offset - a.mulai
         if (rel < 0 || rel >= tampil) return null
-        return <ItemAset key={a.id} a={a} rel={Math.max(0, rel)} playing={playing} tampilMs={tampil * 1000} presets={presets} />
+        return <ItemAset key={a.id} a={a} rel={Math.max(0, rel)} playing={playing} tampilMs={tampil * 1000} presets={presets} sceneId={scene.id} aktif={scene.id === selectedId} />
       })}
     </>
   )
