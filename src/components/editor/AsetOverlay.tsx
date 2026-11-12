@@ -9,18 +9,21 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AsetOverlay, GayaAset, SceneProyek } from '@/lib/editor/proyek'
 import { urlAset, urlAsetSinkron } from '@/lib/editor/aset-store'
+import { asetBawaanUrl } from '@/lib/editor/aset-bawaan'
 import { bangunKeyframesAnimasi } from '@/components/preset-preview'
 import type { PresetAnimasi } from '@/lib/preset-store'
 import { useEditor } from '@/lib/editor/store'
 
-function useUrlAset(id: string): string | null {
-  const [u, setU] = useState<string | null>(() => urlAsetSinkron(id))
+function useUrlAset(a: AsetOverlay): string | null {
+  const bawaan = asetBawaanUrl(a.bawaanId)
+  const [u, setU] = useState<string | null>(() => bawaan ?? urlAsetSinkron(a.id))
   useEffect(() => {
+    if (bawaan) { setU(bawaan); return }
     let on = true
-    urlAset(id).then((x) => { if (on) setU(x) })
+    urlAset(a.id).then((x) => { if (on) setU(x) })
     return () => { on = false }
-  }, [id])
-  return u
+  }, [a.id, bawaan])
+  return bawaan ?? u
 }
 
 function durasiTampil(a: AsetOverlay, durasiScene: number): number {
@@ -43,7 +46,7 @@ const cari = (presets: PresetAnimasi[], nama: string | null | undefined, tipe: '
 function ItemAset({ a, rel, playing, tampilMs, presets, sceneId, aktif }: {
   a: AsetOverlay; rel: number; playing: boolean; tampilMs: number; presets: PresetAnimasi[]; sceneId: string; aktif: boolean
 }) {
-  const url = useUrlAset(a.id)
+  const url = useUrlAset(a)
   const vRef = useRef<HTMLVideoElement>(null)
   const elRef = useRef<HTMLDivElement>(null)
   const outerRef = useRef<HTMLDivElement>(null)

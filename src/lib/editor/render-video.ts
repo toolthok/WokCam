@@ -16,6 +16,8 @@ import {
   IDENT, animasiLoop, animasiMasukKeluar, gabung, transisiPose, warnaDariKelas, resolusiRasio, type Pose,
 } from '@/lib/editor/render-math'
 import { posTeksDiWaktu } from '@/lib/editor/teks-kf'
+import { asetBawaanUrl } from '@/lib/editor/aset-bawaan'
+import { pilihWarnaTeks } from '@/lib/editor/render-math'
 
 export type ProgresRender = { persen: number; t: number; total: number };
 type Media = { tipe: 'gambar' | 'video'; el: HTMLImageElement | HTMLVideoElement; w: number; h: number };
@@ -32,7 +34,7 @@ async function muatMedia(scenes: SceneProyek[]): Promise<Map<string, Media>> {
   const map = new Map<string, Media>();
   for (const sc of scenes) for (const a of sc.aset ?? []) {
     if (map.has(a.id)) continue;
-    const url = await urlAset(a.id);
+    const url = asetBawaanUrl(a.bawaanId) ?? await urlAset(a.id);
     if (!url) continue;
     if (a.tipe === 'gambar') {
       const img = new Image();
@@ -190,6 +192,8 @@ function gambarTeks(k: Konteks, sc: SceneProyek, off: number) {
   const size = style ? style.ukuran * H / 1080 : H * 0.034;
   const tebal = style ? Math.max(0, style.tebal_outline * H / 1080) : 0;
   const bobot = style?.font === 'montserrat_black' ? 900 : style?.font === 'poppins_regular' ? 400 : 700;
+  const warnaDasar = pilihWarnaTeks(warnaDariKelas(kelasLatar(sc.latarPreset, sc.mood)), style?.warna_teks ?? '#FFFFFF');
+  const warnaMiring = warnaDasar === '#1A1A1A' ? '#52525b' : '#d4d4d8';
   const kataList = uraiTeks(sc.teks || sc.naskah);
   if (!kataList.length) return;
 
@@ -240,7 +244,7 @@ function gambarTeks(k: Konteks, sc: SceneProyek, off: number) {
         }
         ctx.globalAlpha = alpha;
         ctx.font = b.font;
-        const warnaKata = b.gaya === 'miring' ? '#d4d4d8' : (style?.warna_teks ?? '#FFFFFF');
+        const warnaKata = b.gaya === 'miring' ? warnaMiring : warnaDasar;
         ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 10 * H / 1080; ctx.shadowOffsetY = 2 * H / 1080;
         if (tebal > 0) { ctx.lineWidth = Math.max(0.6, tebal); ctx.strokeStyle = style?.warna_outline ?? '#000000'; ctx.strokeText(b.kata, x, y); }
         ctx.fillStyle = warnaKata;

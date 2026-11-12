@@ -28,7 +28,7 @@ Sumber awal: bedah video referensi 69 dtk (*insiderforce*, 9:16, 30 fps), dianal
 | # | Fitur | Alasan | Status |
 |---|-------|--------|--------|
 | B1 | Keyframe posisi teks (geser per waktu, drag di pratinjau) | teks terasa kaku | **dikerjakan v0.10** (perlu diuji) |
-| B2 | Slot aset dari AI (`aset_slot`) → placeholder foto/video yang bisa diisi | AI sudah bisa menentukan posisi aset | belum (data ditolak diam-diam, perlu UI) |
+| B2 | Slot aset dari AI (`aset_slot`) → placeholder foto/video yang bisa diisi | AI sudah bisa menentukan posisi aset | **sebagian v0.11–0.12**: slot tampil di panel Aset, bisa diisi berkas; slot ber-`jenis_aset` langsung terisi aset bawaan. Belum tampil sebagai kotak di pratinjau |
 | B3 | Antrian kebutuhan dari impor AI: lihat daftar di editor | kebutuhan baru sudah tersimpan | data tersimpan di `wokcam.antrian.v1`, belum ada layar |
 | B4 | Keyframe teks di timeline (blok keyframe bisa diseret) | editor keyframe baru ada di tab Teks | belum |
 | B5 | Render: font pratinjau (bukan sans-serif sistem) | hasil render beda dengan pratinjau | belum |
@@ -39,3 +39,11 @@ Sumber awal: bedah video referensi 69 dtk (*insiderforce*, 9:16, 30 fps), dianal
 
 ## C. Catatan uji
 - Render sebelumnya: video hanya 1,4 dtk dari 52 dtk (perekam berhenti). v0.9.2 mengganti ke WebM dan melepas track audio kosong. Belum terverifikasi di perangkat.
+
+| B10 | Paket aset bawaan lebih lengkap (dari bedah video 52 dtk: kartu polaroid bertilt, mockup buku 3D, screenshot web, poster) | aset berulang di kedua referensi | sebagian: 6 aset SVG generik di `public/aset/` (v0.12). Mockup buku & screenshot web belum |
+| B11 | Analyzer: video 52 dtk punya hard cut tiap ±2 dtk; hanya 4 dari ±20 pergantian tertangkap | analyzer gagal di gaya ini | belum (gabung dengan B7) |
+
+## D. Hasil bedah video referensi (Nov 2026)
+- Latar **selalu terang** (median kecerahan 234 dari 255; 0% frame gelap). Default gaya ini: `putih-polos` / `kertas-grid`, teks charcoal.
+- Aset berulang: kartu foto bertilt, chart persen, kartu kode gelap, kartu prompt putih, tombol bulat 3D berikon, logo monogram, mockup buku, screenshot web.
+- Watermark pada kedua referensi: insiderforce.io (bukan wokCam).

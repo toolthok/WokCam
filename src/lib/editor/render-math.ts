@@ -155,3 +155,37 @@ export function resolusiRasio(rasio: string): [number, number] {
   if (rasio === '16:9') return [1280, 720];
   return [720, 1280];
 }
+
+/* ── kontras teks: pastikan teks terbaca di atas latar ── */
+
+const hexRgb = (hex: string): [number, number, number] => {
+  const h = hex.replace('#', '');
+  const v = h.length === 3 ? h.split('').map((c) => c + c).join('') : h.padEnd(6, '0').slice(0, 6);
+  return [parseInt(v.slice(0, 2), 16) || 0, parseInt(v.slice(2, 4), 16) || 0, parseInt(v.slice(4, 6), 16) || 0];
+};
+
+/** Luminansi relatif (WCAG) dari hex. */
+export function luminansi(hex: string): number {
+  const lin = (c: number) => { const s = c / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+  const [r, g, b] = hexRgb(hex);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+/** Rasio kontras WCAG (1..21). */
+export function rasioKontras(a: string, b: string): number {
+  const la = luminansi(a), lb = luminansi(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+export const TEKS_GELAP = '#1A1A1A';
+export const TEKS_TERANG = '#FFFFFF';
+
+/**
+ * Warna teks yang terbaca di SEMUA titik latar. Bila `diminta` sudah kontras ≥ 4,5 ke seluruh latar, dipakai apa adanya;
+ * jika tidak, pilih charcoal atau putih — yang kontras minimumnya paling tinggi.
+ */
+export function pilihWarnaTeks(latar: string[], diminta: string): string {
+  const minKontras = (w: string) => Math.min(...latar.map((l) => rasioKontras(w, l)));
+  if (minKontras(diminta) >= 4.5) return diminta;
+  return minKontras(TEKS_GELAP) >= minKontras(TEKS_TERANG) ? TEKS_GELAP : TEKS_TERANG;
+}

@@ -5,7 +5,7 @@
 
 export type ParamRancangan = { topik: string; platform: string; rasio: string; durasi: number; jumlahScene: number; gaya: string; penonton: string; cta: string };
 
-const LATAR = 'malam-neon, senja-jogja, pagi-bening, sawah-emerald, laut-dalam, hutan-kabut, studio-gelap, kertas-terang, kertas-grid, lava-dramatis, ungu-kuantum';
+const LATAR = 'putih-polos, kertas-grid, kertas-terang, malam-neon, senja-jogja, pagi-bening, sawah-emerald, laut-dalam, hutan-kabut, studio-gelap, lava-dramatis, ungu-kuantum';
 const OVERLAY = 'vignette, grain, letterbox, haze, bokeh, progress';
 const PRESET = {
   in: 'Kata Muncul Berturut, Kartu Promo Mengapung',
@@ -25,6 +25,9 @@ TOTAL DURASI: TEPAT ${f.durasi} detik · JUMLAH SCENE: TEPAT ${f.jumlahScene} (r
 
 TUJUAN: kerjakan ±50% pekerjaan desain sejak awal, supaya pengguna hanya perlu menempel hasil ini dan merapikannya.
 
+GAYA VISUAL (WAJIB, sesuai video referensi terang): latar TERANG — pilih "putih-polos" atau "kertas-grid". Dengan latar terang, teks WAJIB gelap (charcoal) dan kontras; kartu/layar memakai kartu putih dengan bayangan lembut.
+Jangan memilih latar gelap atau berwarna pekat kecuali topik benar-benar menuntut.
+
 ATURAN OUTPUT (WAJIB):
 1. Keluarkan HANYA satu objek JSON valid. Tanpa penjelasan, tanpa blok kode markdown.
 2. Jumlah semua "durasi" TEPAT ${f.durasi}. Tiap "naskah" maksimal ${Math.round(2.4 * Number(detik))} kata per scene (±2,4 kata/detik).
@@ -37,7 +40,7 @@ ATURAN OUTPUT (WAJIB):
    Bila tidak ada yang cocok, tetap isi nama terdekat dari daftar, dan CATAT kebutuhannya di "kebutuhan_baru".
 8. "kartu": judul kartu mengambang (mockup/layar) atau null. Pakai ini untuk scene yang seharusnya memperlihatkan layar/aplikasi.
 9. "teks_kf": untuk scene yang teksnya harus bergerak, isi 2–3 keyframe [{"t": detik dari awal scene, "x": 0–100, "y": 0–100}] (x,y = pusat teks dalam persen layar). Kosongkan [] bila posisi bawaan gaya sudah cukup.
-10. "aset_slot": untuk tiap foto/video yang perlu diisi pengguna, tulis [{"tipe":"foto|video","keterangan":"...","x":0–100,"y":0–100,"lebar":5–100,"mulai":0–15,"durasi":0–15}]. Durasi 0 = sampai akhir scene. Kosongkan [] bila tidak perlu.
+10. "aset_slot": SARAN ASET untuk tiap scene yang perlu visual. Tiap slot: {"tipe":"foto|video","jenis_aset":"salah satu ID aset bawaan atau kosong","keterangan":"apa yang harus ada di aset","kata_cari":"kata kunci stok Indonesia | EN","x":0–100,"y":0–100,"lebar":5–100,"mulai":0–15,"durasi":0–15}. Durasi 0 = sampai akhir scene. ID aset bawaan (isi jenis_aset bila cocok, aset langsung terisi): donat-persen (chart persen), kartu-kode-gelap (kartu kode/layar gelap), kartu-prompt-putih (kartu teks/prompt terang), tombol-bulat-3d (ikon bulat 3D), logo-mahkota (logo monogram), kartu-foto-bingkai (foto polaroid). Pilih yang cocok; jenis lain kosongkan jenis_aset dan isi kata_cari. Usulkan 0–3 slot per scene; jangan lebih. Gunakan posisi yang tidak menutupi teks (teks biasanya di bawah/tengah, kartu di atas).
 11. "kebutuhan_baru": daftar gaya, animasi, transisi, efek, atau FITUR yang menurutmu penting tapi belum ada di daftar di atas. Tiap item: {"jenis":"style|animasi|transisi|efek|fitur","nama":"...","deskripsi":"...","alasan":"..."}. Kosongkan [] bila tidak ada.
 12. Sebelum menjawab, hitung ulang: (a) jumlah scene tepat ${f.jumlahScene}; (b) total durasi tepat ${f.durasi}; (c) tiap naskah tidak melewati batas kata.
 
@@ -61,7 +64,7 @@ SKEMA (ikuti persis nama field):
       "transisi_ke_berikutnya": "Potong Cepat",
       "style": "Judul Promo Hitam",
       "teks_kf": [],
-      "aset_slot": []
+      "aset_slot": [ { "tipe": "foto", "keterangan": "...", "kata_cari": "... | EN", "x": 50, "y": 30, "lebar": 60, "mulai": 0, "durasi": 0 } ]
     }
   ],
   "kebutuhan_baru": [

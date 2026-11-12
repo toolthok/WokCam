@@ -78,6 +78,19 @@ export function AsetPanel({ scene }: { scene: SceneProyek }) {
     setBusy(false)
   }
 
+  /* isi slot dari saran AI dengan berkas nyata — id slot dipakai sebagai kunci penyimpanan */
+  const isiSlot = async (a: AsetOverlay, f: File) => {
+    const tipe = f.type.startsWith('video/') ? 'video' : f.type.startsWith('image/') ? 'gambar' : null
+    if (!tipe) { setPesan(`${f.name}: bukan foto/video`); return }
+    if (tipe === 'video' && f.size > MAKS_VIDEO) { setPesan(`${f.name}: video >80 MB, pangkas dulu`); return }
+    setBusy(true)
+    rekamRiwayat()
+    const blob = tipe === 'gambar' ? await kecilkanGambar(f) : f
+    if (!(await simpanBerkasAset(a.id, blob))) { setPesan('Penyimpanan perangkat penuh.'); setBusy(false); return }
+    ubah(a.id, { slot: false, tipe, nama: f.name })
+    setBusy(false)
+  }
+
   const hapus = (id: string) => {
     rekamRiwayat()
     set(aset.filter((a) => a.id !== id))
@@ -105,6 +118,18 @@ export function AsetPanel({ scene }: { scene: SceneProyek }) {
       <div className="mt-2 space-y-2">
         {aset.map((a) => (
           <div key={a.id} className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
+            {a.slot && (
+              <div className="mb-2 rounded-md border border-amber-400/30 bg-amber-500/10 p-2 text-[10px] text-amber-100">
+                <div>Belum ada berkas{a.kataCari ? <> · cari: <b>{a.kataCari}</b></> : null}</div>
+                <label className="mt-1.5 inline-flex min-h-[32px] cursor-pointer items-center rounded border border-amber-300/50 px-2.5 text-[11px] font-semibold text-amber-50">
+                  📁 Isi berkas
+                  <input
+                    type="file" accept="image/*,video/*" hidden
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) void isiSlot(a, f); e.target.value = '' }}
+                  />
+                </label>
+              </div>
+            )}
             <div className="mb-1 flex items-center gap-2">
               {a.tipe === 'video' ? <Film className="h-3.5 w-3.5 text-fuchsia-300" /> : <ImageIcon className="h-3.5 w-3.5 text-sky-300" />}
               <span className="min-w-0 flex-1 truncate text-xs text-zinc-200" title={a.nama}>{a.nama || (a.tipe === 'video' ? 'Video' : 'Foto')}</span>

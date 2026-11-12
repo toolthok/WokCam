@@ -5,6 +5,38 @@ versi mengikuti SemVer (`MAJOR.MINOR.PATCH` — tahap prototype memakai 0.x).
 
 > Rincian status & rencana: lihat [PROGRES.md](PROGRES.md).
 
+## [0.12.0] — 2026-11-12
+
+Tema: **Aset bawaan untuk slot prompt.**
+
+### Ditambahkan
+- 6 aset SVG generik di `public/aset/` (chart persen, kartu kode gelap, kartu prompt putih, tombol bulat 3D,
+  logo mahkota, kartu foto bingkai) + katalog `lib/editor/aset-bawaan.ts`.
+- Prompt rancangan memakai `jenis_aset`: slot yang cocok langsung terisi aset bawaan, tanpa perlu diisi berkas.
+- Docs: `docs/ANTRIAN.md` diperbarui dengan hasil bedah video 52 detik.
+
+### Batas yang diketahui
+- Mockup buku 3D dan screenshot web belum ada sebagai aset bawaan.
+- Analyzer masih lemah pada video dengan hard cut rapat (lihat B11).
+
+## [0.11.0] — 2026-11-12
+
+Tema: **Teks terbaca di semua latar + saran aset dari prompt.**
+
+### Ditambahkan
+- **Kontras teks otomatis** (pratinjau dan render): bila warna teks tidak kontras ≥ 4,5 terhadap latar,
+  warnanya diganti ke charcoal atau putih, mana yang lebih terbaca. Berlaku untuk latar gelap, hijau, maupun terang.
+- Latar **Putih Polos** baru (gaya referensi terang).
+- **Saran aset dari prompt**: prompt meminta slot aset per scene (`aset_slot`) dengan keterangan dan kata
+  kunci pencarian. Di editor, slot muncul di panel Aset sebagai placeholder berstatus “Belum ada berkas”
+  dan bisa diisi langsung dengan tombol 📁 Isi berkas.
+- Prompt rancangan meminta latar terang dan teks gelap, sesuai gaya referensi.
+- `scripts/test-kontras.ts` (9 uji).
+
+### Batas yang diketahui
+- Slot yang belum diisi belum tampil sebagai kotak di pratinjau; hanya di panel.
+- Dua video referensi belum dianalisis: belum terlampir di folder unggahan.
+
 ## [0.10.1] — 2026-11-12
 
 ### Diperbaiki

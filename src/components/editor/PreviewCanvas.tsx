@@ -376,6 +376,9 @@ function LapisScene({
   const gayaAwalTeks = presetIn && playing && !polaKata ? gayaAwalAnimasi(presetIn) : undefined
   /* posisi teks per keyframe (null = tata letak bawaan gaya teks) */
   const posKf = scene.kfTeks?.length ? posTeksDiWaktu(scene.kfTeks, offset) : null
+  /* kontras otomatis: warna teks dipilih ulang bila tidak terbaca di latar (gelap/hijau/terang) */
+  const warnaTeksEfektif = pilihWarnaTeks(warnaDariKelas(kelasLatar(scene.latarPreset, scene.mood)), style?.warna_teks ?? '#FFFFFF')
+  const styleEfektif = style ? { ...style, warna_teks: warnaTeksEfektif } : null
   const posAwal = posKf ?? { x: 50, y: style?.posisi === 'atas' ? 14 : style?.posisi === 'tengah' ? 50 : 84 }
 
   /* geser teks: setiap gerak menulis keyframe pada posisi playhead saat ini */
@@ -464,9 +467,9 @@ function LapisScene({
           onPointerUp={lepasTeks}
           onPointerCancel={lepasTeks}
         >
-          <span className={cn('inline-block break-words', style ? kelasFont(style.font) : 'font-extrabold')} style={gayaTeks(style, tinggi)}>
+          <span className={cn('inline-block break-words', style ? kelasFont(style.font) : 'font-extrabold')} style={gayaTeks(styleEfektif, tinggi)}>
             {kataSegmen.map((seg, i) => (
-              <span key={i} data-kata={polaKata ? '' : undefined} className="inline-block whitespace-pre" style={gayaKata(seg, style?.warna_teks ?? '#FFFFFF')}>
+              <span key={i} data-kata={polaKata ? '' : undefined} className="inline-block whitespace-pre" style={gayaKata(seg, warnaTeksEfektif)}>
                 {seg.kata}
                 {i < kataSegmen.length - 1 ? ' ' : ''}
               </span>
@@ -480,6 +483,7 @@ function LapisScene({
 
 import { LapisAset } from '@/components/editor/AsetOverlay'
 import { posTeksDiWaktu, tulisKfTeks } from '@/lib/editor/teks-kf'
+import { pilihWarnaTeks, warnaDariKelas } from '@/lib/editor/render-math'
 
 /* preset animasi bernama dari koleksi (null bila kosong/tak ada) */
 const presetDari = (koleksi: Koleksi, nama: string | null | undefined, tipe: 'in' | 'out' | 'loop'): PresetAnimasi | null =>

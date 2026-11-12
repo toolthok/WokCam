@@ -1,4 +1,6 @@
 import { kfTeksDariJSON } from "./teks-kf";
+import { ASET_BAWAAN } from "./aset-bawaan";
+const ASET_BAWAAN_IDS: string[] = ASET_BAWAAN.map((a) => a.id);
 /* ══════════ Model Proyek wokCam — kontrak tunggal (prototype web ⇄ app Kotlin) ══════════
  *
  * PERTANYAAN YANG DIJAWAB MODUL INI: "data timeline disimpan & diedit di mana?"
@@ -38,6 +40,9 @@ export type AsetOverlay = {
   animIn?: string | null;   // preset masuk aset (tipe in)
   animOut?: string | null;  // preset keluar aset (tipe out)
   animLoop?: string | null; // preset loop aset (tipe loop)
+  slot?: boolean;           // placeholder dari prompt AI — belum ada berkas
+  kataCari?: string;        // saran kata kunci pencarian stok (dari AI)
+  bawaanId?: string;        // id aset bawaan (aset-bawaan.ts) — tanpa berkas di perangkat
   nama: string;      // nama berkas asli (tampilan saja)
   x: number;         // pusat horizontal, 0-100 (%)
   y: number;         // pusat vertikal, 0-100 (%)
@@ -138,6 +143,7 @@ export const LATAR_PRESET: LatarPreset[] = [
   { id: "laut-dalam", nama: "Laut Dalam", kelas: "from-blue-800 via-indigo-950 to-black", kataKunciEn: "deep ocean dark" },
   { id: "hutan-kabut", nama: "Hutan Kabut", kelas: "from-emerald-800 via-teal-900 to-zinc-950", kataKunciEn: "misty forest" },
   { id: "studio-gelap", nama: "Studio Gelap", kelas: "from-zinc-700 via-zinc-900 to-black", kataKunciEn: "dark studio backdrop" },
+  { id: "putih-polos", nama: "Putih Polos", kelas: "from-zinc-100 via-zinc-100 to-zinc-200", kataKunciEn: "plain light grey background", terang: true },
   { id: "kertas-terang", nama: "Kertas Terang", kelas: "from-zinc-100 via-zinc-200 to-zinc-400", kataKunciEn: "minimal paper texture", terang: true },
   { id: "kertas-grid", nama: "Kertas Grid", kelas: "from-zinc-100 via-zinc-200 to-zinc-300", kataKunciEn: "minimal dotted grid paper background", tekstur: "grid", terang: true },
   { id: "lava-dramatis", nama: "Lava Dramatis", kelas: "from-red-600 via-rose-900 to-zinc-950", kataKunciEn: "dramatic red smoke" },
@@ -589,7 +595,7 @@ export function proyekDariJSON(raw: string): HasilMuatJSON {
       animLoop: dipilih(anim.loop, sc.animLoop),
       transisi: dipilih(sc.transisi_ke_berikutnya, sc.transisi),
       style: nama(sc.style),
-      aset: asetDariJSON(sc.aset),
+      aset: [...asetDariJSON(sc.aset), ...slotDariJSON(sc.aset_slot)],
       animLatar: animDariJSON(sc.animLatar, nama),
       animKartu: animDariJSON(sc.animKartu, nama),
       kfTeks: kfTeksDariJSON(sc.kfTeks ?? sc.teks_kf),
@@ -794,6 +800,36 @@ export function gelombangSuara(seed: number, count: number): number[] {
 }
 
 /** Normalisasi aset dari JSON/autosave — angka dijepit, tipe asing dibuang (toleran). */
+/** Slot aset dari prompt AI (aset_slot) → placeholder tanpa berkas; pengguna mengisinya dari panel Aset. */
+export function slotDariJSON(v: unknown): AsetOverlay[] {
+  if (!Array.isArray(v)) return [];
+  const angka = (x: unknown, lo: number, hi: number, bawaan: number) => {
+    const n = Number(x);
+    return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : bawaan;
+  };
+  return v.slice(0, 8).map((it, i) => {
+    const o = (it ?? {}) as Record<string, unknown>;
+    const video = String(o.tipe ?? "").toLowerCase() === "video";
+    const jenis = String(o.jenis_aset ?? "");
+    const bawaan = ASET_BAWAAN_IDS.includes(jenis) ? jenis : undefined;
+    return {
+      id: "slot" + Date.now().toString(36) + i + Math.random().toString(36).slice(2, 6),
+      tipe: video ? "video" : "gambar",
+      nama: String(o.keterangan ?? "").slice(0, 80),
+      x: angka(o.x, 0, 100, 50),
+      y: angka(o.y, 0, 100, 50),
+      lebar: angka(o.lebar, 5, 100, 45),
+      opacity: 1,
+      mulai: angka(o.mulai, 0, 15, 0),
+      durasi: angka(o.durasi, 0, 15, 0),
+      gaya: "biasa",
+      slot: !bawaan,
+      bawaanId: bawaan,
+      kataCari: typeof o.kata_cari === "string" ? o.kata_cari.slice(0, 120) : undefined,
+    } as AsetOverlay;
+  });
+}
+
 export function asetDariJSON(v: unknown): AsetOverlay[] {
   if (!Array.isArray(v)) return [];
   const angka = (x: unknown, lo: number, hi: number, bawaan: number) => {
@@ -808,6 +844,9 @@ export function asetDariJSON(v: unknown): AsetOverlay[] {
     out.push({
       id: o.id,
       tipe,
+      slot: o.slot === true ? true : undefined,
+      bawaanId: typeof o.bawaanId === "string" ? o.bawaanId : undefined,
+      kataCari: typeof o.kataCari === "string" ? o.kataCari : undefined,
       nama: typeof o.nama === "string" ? o.nama.slice(0, 80) : "",
       gaya: ["biasa", "bulat", "bingkai", "bayangan"].includes(String(o.gaya)) ? (o.gaya as GayaAset) : "biasa",
       animIn: typeof o.animIn === "string" && o.animIn ? o.animIn : null,
